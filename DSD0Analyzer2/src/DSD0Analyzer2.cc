@@ -353,10 +353,10 @@ void DSD0Analyzer2::loopKpi(const edm::Event& iEvent, const edm::EventSetup& iSe
         if(!v.isValid() || !v.hasRefittedTracks()) continue;
         double vtxProb =TMath::Prob( (Double_t) v.totalChiSquared(), (Int_t) v.degreesOfFreedom());
         //if (vtxProb < 0.02) continue;
-        //TransientTrack K_f = v.refittedTrack(*K);
-        //TransientTrack pi_f = v.refittedTrack(*pi);        
-        TransientTrack K_f = *K;
-        TransientTrack pi_f = *pi;
+        TransientTrack K_f = v.refittedTrack(*K);
+        TransientTrack pi_f = v.refittedTrack(*pi);        
+        //TransientTrack K_f = *K;
+        //TransientTrack pi_f = *pi;
 
         math::XYZTLorentzVector p4_K(K_f.track().px(),K_f.track().py(),K_f.track().pz(),sqrt(pow(K_f.track().p(),2)+pow(m_K,2)));
         math::XYZTLorentzVector p4_pi(pi_f.track().px(),pi_f.track().py(),pi_f.track().pz(),sqrt(pow(pi_f.track().p(),2)+pow(m_pi,2)));
