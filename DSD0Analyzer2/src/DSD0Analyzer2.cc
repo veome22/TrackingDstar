@@ -219,6 +219,7 @@ void DSD0Analyzer2::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   */
   nPV = recVtxs->size();
   for(size_t i = 0; i < recVtxs->size(); ++ i) {
+    //if (i==0) continue; // ignore first PV, as per Vincenzo's suggestion
     const Vertex &RecVtx = (*recVtxs)[i];
     //std::cout<<"processing a reco vtx: "<<i<<std::endl;
     //std::cout<<"ndof = "<<RecVtx.ndof()<<std::endl;
@@ -814,7 +815,7 @@ void DSD0Analyzer2::printGenInfo(const edm::Event& iEvent){
 void DSD0Analyzer2::initialize(){
 //clearing the vectors
   //analysis
-  ntracks.clear(); PVx.clear(); PVy.clear(); PVz.clear(); PVerrx.clear(); PVerry.clear(); PVerry.clear();
+  ntracks.clear(); PVx.clear(); PVy.clear(); PVz.clear(); PVerrx.clear(); PVerry.clear(); PVerrz.clear();
   dScandsKpi.clear();  dScandsK3pi.clear();  goodTracks.clear(); slowPiTracks.clear();
   //Kpi D* D0
   D0MassKpi.clear();  DSMassKpi.clear();  D0VtxProb.clear();  D0PtKpi.clear();  DSPtKpi.clear();  D0VtxPosx.clear();

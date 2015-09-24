@@ -11,7 +11,7 @@ void makeOutputTreeTextFile() {
 //std::string output_dir = "~/mount/cms/store/user/scoopers/ZeroBias/DStar_ZeroBias-July20/150720_140439/0000/";
 //std::string output_dir = "~/mount/cms/store/user/scoopers/ZeroBias/DStar_ZeroBias-July22/150722_114017/0000/";
 //std::string output_dir = "~/mount/cms/store/user/scoopers/ZeroBias/DStar_ZeroBias-July27/150727_100208/0000/";
-std::string output_dir = "~/mount/cms/store/user/scoopers/ZeroBias/DStar_ZeroBias-July30/150730_133011/0000/";
+//std::string output_dir = "~/mount/cms/store/user/scoopers/ZeroBias/DStar_ZeroBias-July30/150730_133011/0000/";
 //output_dir = " ~/mount/cms/store/user/scoopers/ZeroBias/DStar_ZeroBiasData-July15-v5/150716_100614/0000/"
 //output_dir = "~/mount/cms/store/user/scoopers/ZeroBias/DStar_ZeroBias_Run251721-lowPU-July17-v2/150717_160219/0000/"
 //output_dir = "~/mount/cms/store/user/scoopers/JetHT/DStar_JetHT-July17-v1/150717_142543/0000/"
@@ -19,13 +19,15 @@ std::string output_dir = "~/mount/cms/store/user/scoopers/ZeroBias/DStar_ZeroBia
 TChain *chain_Kpi = new TChain("analyzer/tree1");
 //TChain *chain_K3pi = new TChain("analyzer/tree2");
 
+chain_Kpi->Add("~/mount/cms/store/user/scoopers/ZeroBias/crab_DStar_ZeroBias-Aug18-noPV0/150818_115928/0000/*.root");
+//chain_Kpi->Add("~/mount/cms/store/user/scoopers/d0Plusk2pi_GEN_SIM/crab_DStar_EnrichedMC_Kpi-Sep14/150914_172350/0000/*.root");
 //chain_Kpi->Add(Form("%s/*.root", output_dir.c_str()));
 //chain_K3pi->Add(Form("%s/*.root", output_dir.c_str()) );
 
-chain_Kpi->Add("~/mount/cms/store/user/scoopers/MinBias_TuneZ2star_13TeV-pythia6/DStar_MinBias_TuneZ2star-July21-v2-wHLT/150721_153230/0000/TrkAnalysis_MC_*.root");
-chain_Kpi->Add("~/mount/cms/store/user/scoopers/MinBias_TuneEE5C_13TeV-herwigpp/DStar_MinBias_TuneEE5C-July21/150721_133708/0000/TrkAnalysis_MC_*.root");
-chain_Kpi->Add("~/mount/cms/store/user/scoopers/MinBias_TuneCUETP8M1_13TeV-pythia8/DStar_MinBias_TuneCUETP8M1-July21-wHLT/150721_161541/0000/TrkAnalysis_MC_*.root");
-chain_Kpi->Add("~/mount/cms/store/user/scoopers/MinBias_TuneMBR_13TeV-pythia8/DStar_MinBias_TuneMBR-July21/150721_133938/0000/TrkAnalysis_MC_*.root");
+//chain_Kpi->Add("~/mount/cms/store/user/scoopers/MinBias_TuneZ2star_13TeV-pythia6/DStar_MinBias_TuneZ2star-July21-v2-wHLT/150721_153230/0000/TrkAnalysis_MC_*.root");
+//chain_Kpi->Add("~/mount/cms/store/user/scoopers/MinBias_TuneEE5C_13TeV-herwigpp/DStar_MinBias_TuneEE5C-July21/150721_133708/0000/TrkAnalysis_MC_*.root");
+//chain_Kpi->Add("~/mount/cms/store/user/scoopers/MinBias_TuneCUETP8M1_13TeV-pythia8/DStar_MinBias_TuneCUETP8M1-July21-wHLT/150721_161541/0000/TrkAnalysis_MC_*.root");
+//chain_Kpi->Add("~/mount/cms/store/user/scoopers/MinBias_TuneMBR_13TeV-pythia8/DStar_MinBias_TuneMBR-July21/150721_133938/0000/TrkAnalysis_MC_*.root");
 
 //chain_Kpi->Add("~/mount/cms/store/user/scoopers/ZeroBias/DStar_ZeroBias-July17-v1/150717_154349/0000/*.root");
 //chain_Kpi->Add("~/mount/cms/store/user/scoopers/ZeroBias/DStar_ZeroBias-July17-v1/150717_154349/0000/TrkAnalysis_generalTracks_9.root");
@@ -36,11 +38,14 @@ chain_Kpi->Add("~/mount/cms/store/user/scoopers/MinBias_TuneMBR_13TeV-pythia8/DS
 //TFile *ofile = new TFile(Form("%s/outputTree.dat",output_dir.c_str()),"RECREATE");
 //TFile *ofile = new TFile("outputTree.dat","RECREATE");
 
+std::string presel_Kpi = "cosAlphaKpi>0.99&&KpiTrkKpt>0.3&&KpiTrkpipt>0.3&&KpiTrkKchi2<2.5&&KpiTrkpichi2<2.5&&KpiTrkKnhits>=5&&KpiTrkpinhits>=5&&KpiTrkKdz<1&&KpiTrkpidz<1&&KpiTrkKdxy<0.1&&KpiTrkpidxy<0.1&&abs(D0MassKpi-1.864)<0.025&&D0VtxProb>0.01&&KpiTrkSpt>0.25&&KpiTrkSchi2<3&&KpiTrkSnhits>2&&KpiTrkSdz<1&&KpiTrkSdxy<0.1&&DSPtKpi>5.5";
+
 FILE *ofile1 = fopen("D0Mass.dat","w");
 FILE *ofile2 = fopen("dM.dat","w");
 
 std::cout<<"copying tree"<<std::endl;
-TTree *otree = chain_Kpi->CopyTree("cosAlphaKpi>0.99");
+//TTree *otree = chain_Kpi->CopyTree("cosAlphaKpi>0.99");
+TTree *otree = chain_Kpi->CopyTree(presel_Kpi.c_str());
 std::cout<<"done copying tree"<<std::endl;
 //otree->Print();
 //std::vector<double> *cosAlphaKpi = 0;
