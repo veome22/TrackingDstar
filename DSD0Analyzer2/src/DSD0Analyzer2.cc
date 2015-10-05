@@ -89,12 +89,12 @@ class DSD0Analyzer2 : public edm::EDAnalyzer {
       std::vector<double> DSetaK3pi,DSphiK3pi,D0MassK3pi2,DSMassK3pi2;
 
       //primarty vtx vars
-      std::vector<double> PVx,PVy,PVz,PVerrx,PVerry,PVerrz;
+      double PVx,PVy,PVz,PVerrx,PVerry,PVerrz;
       double BSx,BSy,BSz,BSerrx,BSerry,BSerrz;
       int nPV;     
  
       //tracks
-      std::vector<int> ntracks;
+      int ntracks;
 
       //Kpi tracks vars
       std::vector<double> KpiTrkKnhits,KpiTrkpinhits,KpiTrkSnhits;
@@ -233,12 +233,12 @@ void DSD0Analyzer2::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     if(RecVtx.ndof()<4 || RecVtx.tracksSize()<3 || RecVtx.isFake()) continue;  
     std::cout << "vertex: " << itnum << " ntracks: " << RecVtx.tracksSize() << std::endl;
    
-    PVx.push_back(RecVtx.x());
-    PVy.push_back(RecVtx.y());
-    PVz.push_back(RecVtx.z());
-    PVerrx.push_back(RecVtx.xError());
-    PVerry.push_back(RecVtx.yError());
-    PVerrz.push_back(RecVtx.zError());
+    PVx = RecVtx.x();
+    PVy = RecVtx.y();
+    PVz = RecVtx.z();
+    PVerrx = RecVtx.xError();
+    PVerry = RecVtx.yError();
+    PVerrz = RecVtx.zError();
 
     // track selector
 
@@ -268,7 +268,7 @@ void DSD0Analyzer2::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
       }
     }
 
-    ntracks.push_back(slowPiTracks.size());
+    ntracks = slowPiTracks.size();
 
     cout << t_tks.size() << "  " << slowPiTracks.size() << " " << goodTracks.size() << endl;
 
@@ -283,14 +283,9 @@ void DSD0Analyzer2::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
 
     slowPiTracks.clear();
     goodTracks.clear();
+    initialize();
   }
   
-  if (NKpiCand > 0) {
-      tree1->Fill();
-  }
-  if (NK3piCand > 0) {
-      tree2->Fill();
-  }
   
 }
 
@@ -462,6 +457,9 @@ void DSD0Analyzer2::loopKpi(const edm::Event& iEvent, const edm::EventSetup& iSe
     if(NKpiCand>999) break;
   }
 
+  if (NKpiCand > 0) {
+      tree1->Fill();
+  }
 }
 
 void DSD0Analyzer2::loopK3pi(const edm::Event& iEvent, const edm::EventSetup& iSetup, const reco::Vertex& RecVtx){
@@ -723,6 +721,9 @@ void DSD0Analyzer2::loopK3pi(const edm::Event& iEvent, const edm::EventSetup& iS
     }
     if(NK3piCand>999) break;
   }
+  if (NK3piCand > 0) {
+      tree2->Fill();
+  }
 
 }
 
@@ -820,7 +821,7 @@ void DSD0Analyzer2::printGenInfo(const edm::Event& iEvent){
 void DSD0Analyzer2::initialize(){
 //clearing the vectors
   //analysis
-  ntracks.clear(); PVx.clear(); PVy.clear(); PVz.clear(); PVerrx.clear(); PVerry.clear(); PVerrz.clear();
+  //ntracks.clear(); PVx.clear(); PVy.clear(); PVz.clear(); PVerrx.clear(); PVerry.clear(); PVerrz.clear();
   dScandsKpi.clear();  dScandsK3pi.clear();  goodTracks.clear(); slowPiTracks.clear();
   //Kpi D* D0
   D0MassKpi.clear();  DSMassKpi.clear();  D0VtxProb.clear();  D0PtKpi.clear();  DSPtKpi.clear();  D0VtxPosx.clear();
@@ -859,7 +860,7 @@ void DSD0Analyzer2::initialize(){
   for(int i=0;i<160;i++)
     trigflag[i]=0;
   BSx = BSy = BSz = BSerrx = BSerry = BSerrz = -99.;
-  NKpiCand=0,NK3piCand=0,NKpiMC=0,NK3piMC=0,run_n=0,event_n=0,lumi=0;
+  NKpiCand=0,NK3piCand=0,NKpiMC=0,NK3piMC=0;//,run_n=0,event_n=0,lumi=0;
 }
 
 void DSD0Analyzer2::beginJob()
@@ -916,16 +917,16 @@ tree2->Branch("cosAlphaK3pi", &cosAlphaK3pi);
 tree2->Branch("flightLengthK3pi", &flightLengthK3pi);
 
 //tracks
-tree1->Branch("ntracks",&ntracks);
-tree2->Branch("ntracks",&ntracks);
+tree1->Branch("ntracks",&ntracks,"ntracks/I");
+tree2->Branch("ntracks",&ntracks,"ntracks/I");
 //primary vertex
 tree1->Branch("nPV",&nPV,"nPV/I");
-tree1->Branch("PVx",&PVx);
-tree1->Branch("PVy",&PVy);
-tree1->Branch("PVz",&PVz);
-tree1->Branch("PVerrx",&PVerrx);
-tree1->Branch("PVerry",&PVerry);
-tree1->Branch("PVerrz",&PVerrz);
+tree1->Branch("PVx",&PVx,"PVx/D");
+tree1->Branch("PVy",&PVy,"PVy/D");
+tree1->Branch("PVz",&PVz,"PVz/D");
+tree1->Branch("PVerrx",&PVerrx,"PVerrx/D");
+tree1->Branch("PVerry",&PVerry,"PVerry/D");
+tree1->Branch("PVerrz",&PVerrz,"PVerrz/D");
 tree1->Branch("BSx",&BSx,"BSx/D");
 tree1->Branch("BSy",&BSy,"BSy/D");
 tree1->Branch("BSz",&BSz,"BSz/D");
@@ -934,12 +935,12 @@ tree1->Branch("BSerry",&BSerry,"BSerry/D");
 tree1->Branch("BSerrz",&BSerrz,"BSerrz/D");
 
 tree2->Branch("nPV",&nPV,"nPV/I");
-tree2->Branch("PVx",&PVx);
-tree2->Branch("PVy",&PVy);
-tree2->Branch("PVz",&PVz);
-tree2->Branch("PVerrx",&PVerrx);
-tree2->Branch("PVerry",&PVerry);
-tree2->Branch("PVerrz",&PVerrz);
+tree2->Branch("PVx",&PVx,"PVx/D");
+tree2->Branch("PVy",&PVy,"PVy/D");
+tree2->Branch("PVz",&PVz,"PVz/D");
+tree2->Branch("PVerrx",&PVerrx,"PVerrx/D");
+tree2->Branch("PVerry",&PVerry,"PVerry/D");
+tree2->Branch("PVerrz",&PVerrz,"PVerrz/D");
 tree2->Branch("BSx",&BSx,"BSx/D");
 tree2->Branch("BSy",&BSy,"BSy/D");
 tree2->Branch("BSz",&BSz,"BSz/D");
