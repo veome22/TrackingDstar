@@ -212,21 +212,26 @@ void DSD0Analyzer2::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   std::vector<reco::Track> slowPitrks;
   std::vector<reco::Track> goodtrks;
 
-  /*// Get Matched Vertices
-  typedef AssociationMap<OneToManyWithQuality< VertexCollection, TrackCollection, float> > TrackVertexAssMap;
+  // Get Matched Vertices
+  typedef AssociationMap<OneToManyWithQuality< VertexCollection, TrackCollection, int> > TrackVertexAssMap;
   Handle<TrackVertexAssMap> assomap;
-  iEvent.getByLabel("Tracks2Vertex",assomap);
-  */
-  nPV = recVtxs->size();
-  for(size_t i = 0; i < recVtxs->size(); ++ i) {
-    //if (i==0) continue; // ignore first PV, as per Vincenzo's suggestion
-    const Vertex &RecVtx = (*recVtxs)[i];
+  iEvent.getByLabel("Tracks2Vertex",assomap); 
+ 
+  nPV = assomap->size();
+  //nPV = recVtxs->size();
+  //for(size_t i = 0; i < recVtxs->size(); ++ i) {
+  int itnum = 0;
+  for(TrackVertexAssMap::const_iterator iAM = assomap->begin(); iAM != assomap->end(); iAM++) {
+    itnum++;
+    if (itnum==1) continue; // ignore first PV, as per Vincenzo's suggestion
+    //const Vertex &RecVtx = (*recVtxs)[i];
+    const Vertex &RecVtx = *(iAM->key);
     //std::cout<<"processing a reco vtx: "<<i<<std::endl;
     //std::cout<<"ndof = "<<RecVtx.ndof()<<std::endl;
     //std::cout<<"tracksSize = "<<RecVtx.tracksSize()<<std::endl;
     //std::cout<<"isFake = "<<RecVtx.isFake()<<std::endl;
     if(RecVtx.ndof()<4 || RecVtx.tracksSize()<3 || RecVtx.isFake()) continue;  
-    std::cout << "vertex: " << i+1 << " ntracks: " << RecVtx.tracksSize() << std::endl;
+    std::cout << "vertex: " << itnum << " ntracks: " << RecVtx.tracksSize() << std::endl;
    
     PVx.push_back(RecVtx.x());
     PVy.push_back(RecVtx.y());
