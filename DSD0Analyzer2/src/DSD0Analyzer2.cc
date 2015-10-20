@@ -108,6 +108,7 @@ class DSD0Analyzer2 : public edm::EDAnalyzer {
       std::vector<double> KpiTrkScharge;
       //MC
       std::vector<double> MCDsDeltaR;
+      std::vector<double> KpiGenDSCharge;
       //K3pi tracks vars
       std::vector<double> K3piTrkKnhits,K3piTrk1pinhits,K3piTrk2pinhits,K3piTrk3pinhits,K3piTrkSnhits;
       std::vector<double> K3piTrkKchi2,K3piTrk1pichi2,K3piTrk2pichi2,K3piTrk3pichi2,K3piTrkSchi2;
@@ -120,6 +121,7 @@ class DSD0Analyzer2 : public edm::EDAnalyzer {
       std::vector<double> K3piTrkScharge;
       //MC
       std::vector<double> MCDsDeltaR3;
+      std::vector<double> K3piGenDSCharge;
       std::vector<int> K3pi_MC_mode;
 
 };
@@ -257,12 +259,12 @@ void DSD0Analyzer2::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
      TransientTrack t_trk = vtx_trks.at(j);
   
       if( fabs(t_trk.track().eta())<2.4 && 
-          fabs(t_trk.track().dxy(RecVtx.position()))<1.0 && 
-          fabs(t_trk.track().dz(RecVtx.position()))<2.0 &&
-          t_trk.track().normalizedChi2() < 4.0 &&
-          t_trk.track().pt() > 0.15){
+          fabs(t_trk.track().dxy(RecVtx.position()))<0.1 && 
+          fabs(t_trk.track().dz(RecVtx.position()))<1.0 &&
+          t_trk.track().normalizedChi2() < 2.5 &&
+          t_trk.track().pt() > 0.3){
         slowPiTracks.push_back( &vtx_trks.at(j));
-        if( (t_trk.track().numberOfValidHits() > 3) && (t_trk.track().pt() > 0.3) ){
+        if( (t_trk.track().numberOfValidHits() > 3) && (t_trk.track().pt() > 0.25) ){
           goodTracks.push_back( &vtx_trks.at(j) );
         }
       }
@@ -353,7 +355,7 @@ void DSD0Analyzer2::loopKpi(const edm::Event& iEvent, const edm::EventSetup& iSe
         TransientVertex v = kalman.vertex(tks);
         if(!v.isValid() || !v.hasRefittedTracks()) continue;
         double vtxProb =TMath::Prob( (Double_t) v.totalChiSquared(), (Int_t) v.degreesOfFreedom());
-        //if (vtxProb < 0.02) continue;
+        if (vtxProb < 0.01) continue;
         TransientTrack K_f = v.refittedTrack(*K);
         TransientTrack pi_f = v.refittedTrack(*pi);        
         //TransientTrack K_f = *K;
@@ -364,7 +366,7 @@ void DSD0Analyzer2::loopKpi(const edm::Event& iEvent, const edm::EventSetup& iSe
 
         math::XYZTLorentzVector d0_p4 = p4_K + p4_pi;
         double d0mass = d0_p4.M();
-        if(fabs(d0mass - 1.86484)>0.2) continue;
+        if(fabs(d0mass - 1.86484)>0.030) continue;
    
         math::XYZTLorentzVector dS_p4 = d0_p4 + p4_S;
         double dsmass = dS_p4.M();
@@ -378,6 +380,7 @@ void DSD0Analyzer2::loopKpi(const edm::Event& iEvent, const edm::EventSetup& iSe
         math::XYZVector D0_3vector = math::XYZVector(d0_p4.Px(), d0_p4.Py(), d0_p4.Pz());
         double cosalpha = (displacement.Dot(D0_3vector) - displacement.Z()*D0_3vector.Z() ) / ( sqrt(displacement.perp2()) * sqrt(D0_3vector.perp2()) );
         double flightlength = sqrt(displacement.perp2()) * (cosalpha/fabs(cosalpha)); // flight length in the transverse plane
+        if (cosalpha < 0) continue;
 
         if(doGen){
         
@@ -457,7 +460,7 @@ void DSD0Analyzer2::loopKpi(const edm::Event& iEvent, const edm::EventSetup& iSe
     if(NKpiCand>999) break;
   }
 
-  if (NKpiCand > 0) {
+  if (NKpiCand > 0 || doGen) {
       tree1->Fill();
   }
 }
@@ -579,7 +582,7 @@ void DSD0Analyzer2::loopK3pi(const edm::Event& iEvent, const edm::EventSetup& iS
             TransientVertex v = kalman.vertex(tks);
             if(!v.isValid() || !v.hasRefittedTracks()) continue;
             double vtxProb = TMath::Prob( (Double_t) v.totalChiSquared(), (Int_t) v.degreesOfFreedom());
-            //if (vtxProb < 0.02) continue;
+            if (vtxProb < 0.01) continue;
             TransientTrack K_f = v.refittedTrack(*K);
             TransientTrack pi1_f = v.refittedTrack(*pi1);
             TransientTrack pi2_f = v.refittedTrack(*pi2);
@@ -599,7 +602,7 @@ void DSD0Analyzer2::loopK3pi(const edm::Event& iEvent, const edm::EventSetup& iS
             double d0mass1 = p4_D0.M();
             double d0mass2 = p4_D0_.M();
             double d0mass = fabs(d0mass1-1.86484)<fabs(d0mass2-1.86484) ? d0mass1 : d0mass2;
-            if(fabs(d0mass - 1.86484)>0.2) continue;
+            if(fabs(d0mass - 1.86484)>0.030) continue;
 
             math::XYZTLorentzVector p4_DS = p4_D0 + p4_S;
             math::XYZTLorentzVector p4_DS_ = p4_D0_ + p4_S;
@@ -616,6 +619,7 @@ void DSD0Analyzer2::loopK3pi(const edm::Event& iEvent, const edm::EventSetup& iS
             math::XYZVector D0_3vector = math::XYZVector(p4_D0.Px(), p4_D0.Py(), p4_D0.Pz());
             double cosalpha = (displacement.Dot(D0_3vector) - displacement.Z()*D0_3vector.Z() ) / ( sqrt(displacement.perp2()) * sqrt(D0_3vector.perp2()) );
             double flightlength = sqrt(displacement.perp2()) * (cosalpha/fabs(cosalpha)); // flight length in the transverse plane
+            if (cosalpha < 0) continue;
 
             if(doGen){
 
@@ -721,7 +725,7 @@ void DSD0Analyzer2::loopK3pi(const edm::Event& iEvent, const edm::EventSetup& iS
     }
     if(NK3piCand>999) break;
   }
-  if (NK3piCand > 0) {
+  if (NK3piCand > 0 || doGen) {
       tree2->Fill();
   }
 
@@ -775,8 +779,10 @@ void DSD0Analyzer2::printGenInfo(const edm::Event& iEvent){
  
           if(K_num==1 && pi_num==1 && ndau==2){
             dScandsKpi.push_back(i);
+            KpiGenDSCharge.push_back(p.charge());
           }
           if(K_num==1 && pi_num==3 && ndau==4){
+            K3piGenDSCharge.push_back(p.charge());
             dScandsK3pi.push_back(i);
    
 
@@ -843,7 +849,7 @@ void DSD0Analyzer2::initialize(){
   KpiTrkKphi.clear();  KpiTrkpiphi.clear();  KpiTrkSphi.clear();
   KpiDSDeltaR.clear(); KpiTrkScharge.clear();
   //MC
-  MCDsDeltaR.clear();MCDsDeltaR3.clear(),K3pi_MC_mode.clear();
+  MCDsDeltaR.clear();MCDsDeltaR3.clear(),K3pi_MC_mode.clear(); KpiGenDSCharge.clear(); K3piGenDSCharge.clear();
 
   //K3pi tracks
   K3piTrkKdxy.clear();  K3piTrk1pidxy.clear();  K3piTrk2pidxy.clear();  K3piTrk3pidxy.clear();  K3piTrkSdxy.clear();
@@ -975,6 +981,7 @@ tree1->Branch("KpiTrkSphi",&KpiTrkSphi);
 tree1->Branch("KpiTrkScharge",&KpiTrkScharge);
 //MC
 tree1->Branch("MCDsDeltaR",&MCDsDeltaR);
+tree1->Branch("KpiGenDSCharge", &KpiGenDSCharge);
 
 //K3pi tracks vars
 tree2->Branch("K3piTrkKpt",&K3piTrkKpt);
@@ -1027,6 +1034,7 @@ tree2->Branch("K3piTrkScharge",&K3piTrkScharge);
 //MC
 tree2->Branch("MCDsDeltaR3",&MCDsDeltaR3);
 tree2->Branch("K3pi_MC_mode",&K3pi_MC_mode);
+tree2->Branch("K3piGenDSCharge", &K3piGenDSCharge);
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
