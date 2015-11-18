@@ -107,10 +107,7 @@ class DSD0Analyzer2 : public edm::EDAnalyzer {
       std::vector<double> KpiDSDeltaR;
       std::vector<double> KpiTrkScharge;
       //MC
-      int nGenDS;
       std::vector<double> MCDsDeltaR;
-      std::vector<double> KpiGenDSCharge;
-      std::vector<double> KpiGenDSPt;
       //K3pi tracks vars
       std::vector<double> K3piTrkKnhits,K3piTrk1pinhits,K3piTrk2pinhits,K3piTrk3pinhits,K3piTrkSnhits;
       std::vector<double> K3piTrkKchi2,K3piTrk1pichi2,K3piTrk2pichi2,K3piTrk3pichi2,K3piTrkSchi2;
@@ -123,8 +120,6 @@ class DSD0Analyzer2 : public edm::EDAnalyzer {
       std::vector<double> K3piTrkScharge;
       //MC
       std::vector<double> MCDsDeltaR3;
-      std::vector<double> K3piGenDSCharge;
-      std::vector<double> K3piGenDSPt;
       std::vector<int> K3pi_MC_mode;
 
 };
@@ -224,13 +219,14 @@ void DSD0Analyzer2::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
  
   nPV = assomap->size();
   //nPV = recVtxs->size();
-  //for(size_t i = 0; i < recVtxs->size(); ++ i) {
   int itnum = 0;
-  for(TrackVertexAssMap::const_iterator iAM = assomap->begin(); iAM != assomap->end(); iAM++) {
+  for(size_t i = 0; i < recVtxs->size(); ++ i) {
+  //for(TrackVertexAssMap::const_iterator iAM = assomap->begin(); iAM != assomap->end(); iAM++) {
     itnum++;
-    if (itnum==1) continue; // ignore first PV, as per Vincenzo's suggestion
-    //const Vertex &RecVtx = (*recVtxs)[i];
-    const Vertex &RecVtx = *(iAM->key);
+    //if (itnum==1) continue; // ignore first PV, as per Vincenzo's suggestion
+    if (itnum!=1) continue; // only consider first vertex, to match with Valentina
+    const Vertex &RecVtx = (*recVtxs)[i];
+    //const Vertex &RecVtx = *(iAM->key);
     //std::cout<<"processing a reco vtx: "<<i<<std::endl;
     //std::cout<<"ndof = "<<RecVtx.ndof()<<std::endl;
     //std::cout<<"tracksSize = "<<RecVtx.tracksSize()<<std::endl;
@@ -264,10 +260,10 @@ void DSD0Analyzer2::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
       if( fabs(t_trk.track().eta())<2.4 && 
           fabs(t_trk.track().dxy(RecVtx.position()))<0.1 && 
           fabs(t_trk.track().dz(RecVtx.position()))<1.0 &&
-          t_trk.track().normalizedChi2() < 2.5 &&
-          t_trk.track().pt() > 0.3){
+          t_trk.track().normalizedChi2() < 3.0 &&
+          t_trk.track().pt() > 0.25){
         slowPiTracks.push_back( &vtx_trks.at(j));
-        if( (t_trk.track().numberOfValidHits() > 3) && (t_trk.track().pt() > 0.25) ){
+        if( (t_trk.track().numberOfValidHits() > 3) && (t_trk.track().pt() > 0.30) ){
           goodTracks.push_back( &vtx_trks.at(j) );
         }
       }
@@ -463,7 +459,7 @@ void DSD0Analyzer2::loopKpi(const edm::Event& iEvent, const edm::EventSetup& iSe
     if(NKpiCand>999) break;
   }
 
-  if (NKpiCand > 0 || doGen) {
+  if (NKpiCand > 0) {
       tree1->Fill();
   }
 }
@@ -728,7 +724,7 @@ void DSD0Analyzer2::loopK3pi(const edm::Event& iEvent, const edm::EventSetup& iS
     }
     if(NK3piCand>999) break;
   }
-  if (NK3piCand > 0 || doGen) {
+  if (NK3piCand > 0) {
       tree2->Fill();
   }
 
@@ -761,7 +757,6 @@ void DSD0Analyzer2::printGenInfo(const edm::Event& iEvent){
 
     if(fabs(p.pdgId())==413){ //D*
 
-      nGenDS++;
       for(size_t j=0;j<p.numberOfDaughters();j++){
 
         const Candidate* dau = p.daughter(j);
@@ -783,12 +778,8 @@ void DSD0Analyzer2::printGenInfo(const edm::Event& iEvent){
  
           if(K_num==1 && pi_num==1 && ndau==2){
             dScandsKpi.push_back(i);
-            KpiGenDSCharge.push_back(p.charge());
-            KpiGenDSPt.push_back(p.pt());
           }
           if(K_num==1 && pi_num==3 && ndau==4){
-            K3piGenDSCharge.push_back(p.charge());
-            K3piGenDSPt.push_back(p.pt());
             dScandsK3pi.push_back(i);
    
 
@@ -855,8 +846,7 @@ void DSD0Analyzer2::initialize(){
   KpiTrkKphi.clear();  KpiTrkpiphi.clear();  KpiTrkSphi.clear();
   KpiDSDeltaR.clear(); KpiTrkScharge.clear();
   //MC
-  MCDsDeltaR.clear();MCDsDeltaR3.clear(),K3pi_MC_mode.clear(); KpiGenDSCharge.clear(); K3piGenDSCharge.clear(); KpiGenDSPt.clear(); K3piGenDSPt.clear();
-  nGenDS=0;
+  MCDsDeltaR.clear();MCDsDeltaR3.clear(),K3pi_MC_mode.clear();
 
   //K3pi tracks
   K3piTrkKdxy.clear();  K3piTrk1pidxy.clear();  K3piTrk2pidxy.clear();  K3piTrk3pidxy.clear();  K3piTrkSdxy.clear();
@@ -882,9 +872,7 @@ tree1->Branch("trigflag",&trigflag,"trigflag[160]/I");
 tree2->Branch("trigflag",&trigflag,"trigflag[160]/I");
 tree1->Branch("NKpiCand",&NKpiCand,"NKpiCand/I");
 tree1->Branch("NKpiMC",&NKpiMC,"NKpiMC/I");
-tree1->Branch("NK3piMC",&NK3piMC,"NK3piMC/I");
 tree2->Branch("NK3piCand",&NK3piCand,"NK3piCand/I");
-tree2->Branch("NKpiMC",&NKpiMC,"NKpiMC/I");
 tree2->Branch("NK3piMC",&NK3piMC,"NK3piMC/I");
 
 tree1->Branch("run_n",&run_n,"run_n/I");
@@ -990,9 +978,6 @@ tree1->Branch("KpiTrkSphi",&KpiTrkSphi);
 tree1->Branch("KpiTrkScharge",&KpiTrkScharge);
 //MC
 tree1->Branch("MCDsDeltaR",&MCDsDeltaR);
-tree1->Branch("KpiGenDSCharge", &KpiGenDSCharge);
-tree1->Branch("KpiGenDSPt", &KpiGenDSPt);
-tree1->Branch("nGenDS", &nGenDS);
 
 //K3pi tracks vars
 tree2->Branch("K3piTrkKpt",&K3piTrkKpt);
@@ -1045,9 +1030,6 @@ tree2->Branch("K3piTrkScharge",&K3piTrkScharge);
 //MC
 tree2->Branch("MCDsDeltaR3",&MCDsDeltaR3);
 tree2->Branch("K3pi_MC_mode",&K3pi_MC_mode);
-tree2->Branch("K3piGenDSCharge", &K3piGenDSCharge);
-tree2->Branch("K3piGenDSPt", &K3piGenDSPt);
-tree2->Branch("nGenDS", &nGenDS);
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
