@@ -82,16 +82,16 @@ class DSD0Analyzer2 : public edm::EDAnalyzer {
       int run_n,event_n,lumi;
  
       //Kpi & K3pi D0 D* vector vars
-      std::vector<double> D0MassKpi,DSMassKpi,D0VtxProb,D0PtKpi,DSPtKpi,D0VtxPosx,D0VtxPosy,D0VtxPosz,D0Vtxerrx,D0Vtxerry;
-      std::vector<double> D0Vtxerrz,D0etaKpi,D0phiKpi,DSetaKpi,DSphiKpi,D0MassK3pi,D0MassK3pi1,DSMassK3pi,DSMassK3pi1,D0VtxProb3,D0PtK3pi,DSPtK3pi;
+      std::vector<double> D0MassKpi,DSMassKpi,D0VtxProb,D0VtxLSig,D0VtxLSig3D,D0PtKpi,DSPtKpi,D0VtxPosx,D0VtxPosy,D0VtxPosz,D0Vtxerrx,D0Vtxerry,D0Vtxcxy,D0Vtxcxz,D0Vtxcyz;
+      std::vector<double> D0Vtxerrz,D0etaKpi,D0phiKpi,DSetaKpi,DSphiKpi,D0MassK3pi,D0MassK3pi1,DSMassK3pi,DSMassK3pi1,D0VtxProb3,D0Vtx3LSig,D0Vtx3LSig3D,D0PtK3pi,DSPtK3pi;
       std::vector<double> cosAlphaK3pi,cosAlphaKpi,flightLengthK3pi,flightLengthKpi;
-      std::vector<double> D0VtxPosx3,D0VtxPosy3,D0VtxPosz3,D0Vtxerrx3,D0Vtxerry3,D0Vtxerrz3,D0etaK3pi,D0phiK3pi;
+      std::vector<double> D0VtxPosx3,D0VtxPosy3,D0VtxPosz3,D0Vtxerrx3,D0Vtxerry3,D0Vtxerrz3,D0Vtx3cxy,D0Vtx3cxz,D0Vtx3cyz,D0etaK3pi,D0phiK3pi;
       std::vector<double> DSetaK3pi,DSphiK3pi,D0MassK3pi2,DSMassK3pi2;
 
       //primarty vtx vars
-      double PVx,PVy,PVz,PVerrx,PVerry,PVerrz;
+      double PVx,PVy,PVz,PVerrx,PVerry,PVerrz,PVcxy,PVcxz,PVcyz;
       double BSx,BSy,BSz,BSerrx,BSerry,BSerrz;
-      int nPV;     
+      int nPV, PVOrder;     
  
       //tracks
       int ntracks;
@@ -224,7 +224,7 @@ void DSD0Analyzer2::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   //for(TrackVertexAssMap::const_iterator iAM = assomap->begin(); iAM != assomap->end(); iAM++) {
     itnum++;
     //if (itnum==1) continue; // ignore first PV, as per Vincenzo's suggestion
-    if (itnum!=1) continue; // only consider first vertex, to match with Valentina
+    //if (itnum!=1) continue; // only consider first vertex, to match with Valentina
     const Vertex &RecVtx = (*recVtxs)[i];
     //const Vertex &RecVtx = *(iAM->key);
     //std::cout<<"processing a reco vtx: "<<i<<std::endl;
@@ -234,12 +234,16 @@ void DSD0Analyzer2::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     if(RecVtx.ndof()<4 || RecVtx.tracksSize()<3 || RecVtx.isFake()) continue;  
     std::cout << "vertex: " << itnum << " ntracks: " << RecVtx.tracksSize() << std::endl;
    
+    PVOrder = itnum;
     PVx = RecVtx.x();
     PVy = RecVtx.y();
     PVz = RecVtx.z();
     PVerrx = RecVtx.xError();
     PVerry = RecVtx.yError();
     PVerrz = RecVtx.zError();
+    PVcxy = RecVtx.covariance(0,1);
+    PVcxz = RecVtx.covariance(0,2);
+    PVcyz = RecVtx.covariance(1,2);
 
     // track selector
 
@@ -378,7 +382,27 @@ void DSD0Analyzer2::loopKpi(const edm::Event& iEvent, const edm::EventSetup& iSe
         math::XYZVector displacement = D0_position - PV_position;
         math::XYZVector D0_3vector = math::XYZVector(d0_p4.Px(), d0_p4.Py(), d0_p4.Pz());
         double cosalpha = (displacement.Dot(D0_3vector) - displacement.Z()*D0_3vector.Z() ) / ( sqrt(displacement.perp2()) * sqrt(D0_3vector.perp2()) );
-        double flightlength = sqrt(displacement.perp2()) * (cosalpha/fabs(cosalpha)); // flight length in the transverse plane
+        //double flightlength = sqrt(displacement.perp2()) * (cosalpha/fabs(cosalpha)); // flight length in the transverse plane
+        double flightlength = sqrt(displacement.perp2()) * cosalpha; // flight length in the transverse plane in the direction of momentum (what we call lifetime in AN)
+
+        // calculate lifetime significance
+        double deriv_x = displacement.X() / fabs(flightlength);
+        double deriv_y = displacement.Y() / fabs(flightlength);
+    
+        double sigma_L = pow(deriv_x,2) * (PVerrx + v.positionError().cxx()) + pow(deriv_y,2) * (PVerry + v.positionError().cyy()) + 2*deriv_x*deriv_y * (PVcxy + v.positionError().cyx());
+        sigma_L = sqrt(sigma_L);
+        double LSig = flightlength / sigma_L;
+        
+        double flightlength3D = (displacement.Dot(D0_3vector) ) / ( sqrt(D0_3vector.Mag2()) );
+        double deriv3D_x = displacement.X() / fabs(flightlength3D);
+        double deriv3D_y = displacement.Y() / fabs(flightlength3D);
+        double deriv3D_z = displacement.Z() / fabs(flightlength3D);
+
+        double sigma_L3D = pow(deriv3D_x,2) * (PVerrx + v.positionError().cxx()) + pow(deriv3D_y,2) * (PVerry + v.positionError().cyy()) + pow(deriv3D_z,2) * (PVerrz + v.positionError().czz()) + 2*deriv3D_x*deriv3D_y * (PVcxy + v.positionError().cyx()) + 2*deriv3D_x*deriv3D_z * (PVcxz + v.positionError().czx()) + 2*deriv3D_y*deriv3D_z * (PVcyz + v.positionError().czy());
+
+        sigma_L3D = sqrt(sigma_L3D);
+        double LSig3D = flightlength3D / sigma_L3D;
+
         if (cosalpha < 0) continue;
 
         if(doGen){
@@ -399,6 +423,8 @@ void DSD0Analyzer2::loopKpi(const edm::Event& iEvent, const edm::EventSetup& iSe
         }
 
         D0VtxProb.push_back(vtxProb);
+        D0VtxLSig.push_back(LSig);
+        D0VtxLSig3D.push_back(LSig3D);
         D0MassKpi.push_back(d0_p4.M());
         DSMassKpi.push_back(dS_p4.M());
         D0PtKpi.push_back(d0_p4.Pt());
@@ -417,6 +443,9 @@ void DSD0Analyzer2::loopKpi(const edm::Event& iEvent, const edm::EventSetup& iSe
         D0Vtxerrx.push_back(v.positionError().cxx());
         D0Vtxerry.push_back(v.positionError().cyy());
         D0Vtxerrz.push_back(v.positionError().czz());
+        D0Vtxcxy.push_back(v.positionError().cyx());
+        D0Vtxcxz.push_back(v.positionError().czx());
+        D0Vtxcyz.push_back(v.positionError().czy());
 
         KpiTrkKdxy.push_back(K_f.track().dxy(RecVtx.position()));
         KpiTrkpidxy.push_back(pi_f.track().dxy(RecVtx.position()));
@@ -617,7 +646,27 @@ void DSD0Analyzer2::loopK3pi(const edm::Event& iEvent, const edm::EventSetup& iS
             math::XYZVector displacement = D0_position - PV_position;
             math::XYZVector D0_3vector = math::XYZVector(p4_D0.Px(), p4_D0.Py(), p4_D0.Pz());
             double cosalpha = (displacement.Dot(D0_3vector) - displacement.Z()*D0_3vector.Z() ) / ( sqrt(displacement.perp2()) * sqrt(D0_3vector.perp2()) );
-            double flightlength = sqrt(displacement.perp2()) * (cosalpha/fabs(cosalpha)); // flight length in the transverse plane
+            //double flightlength = sqrt(displacement.perp2()) * (cosalpha/fabs(cosalpha)); // flight length in the transverse plane
+            double flightlength = sqrt(displacement.perp2()) * cosalpha; // flight length in the transverse plane in the direction of momentum (what we call lifetime in AN)
+
+            // calculate lifetime significance
+            double deriv_x = displacement.X() / fabs(flightlength);
+            double deriv_y = displacement.Y() / fabs(flightlength);
+    
+            double sigma_L = pow(deriv_x,2) * (PVerrx + v.positionError().cxx()) + pow(deriv_y,2) * (PVerry + v.positionError().cyy()) + 2*deriv_x*deriv_y * (PVcxy + v.positionError().cyx());
+            sigma_L = sqrt(sigma_L);
+            double LSig = flightlength / sigma_L;
+        
+            double flightlength3D = (displacement.Dot(D0_3vector) ) / ( sqrt(D0_3vector.Mag2()) );
+            double deriv3D_x = displacement.X() / fabs(flightlength3D);
+            double deriv3D_y = displacement.Y() / fabs(flightlength3D);
+            double deriv3D_z = displacement.Z() / fabs(flightlength3D);
+
+            double sigma_L3D = pow(deriv3D_x,2) * (PVerrx + v.positionError().cxx()) + pow(deriv3D_y,2) * (PVerry + v.positionError().cyy()) + pow(deriv3D_z,2) * (PVerrz + v.positionError().czz()) + 2*deriv3D_x*deriv3D_y * (PVcxy + v.positionError().cyx()) + 2*deriv3D_x*deriv3D_z * (PVcxz + v.positionError().czx()) + 2*deriv3D_y*deriv3D_z * (PVcyz + v.positionError().czy());
+
+            sigma_L3D = sqrt(sigma_L3D);
+            double LSig3D = flightlength3D / sigma_L3D;
+            
             if (cosalpha < 0) continue;
 
             if(doGen){
@@ -638,6 +687,8 @@ void DSD0Analyzer2::loopK3pi(const edm::Event& iEvent, const edm::EventSetup& iS
             }
 
             D0VtxProb3.push_back(vtxProb);
+            D0Vtx3LSig.push_back(LSig);
+            D0Vtx3LSig3D.push_back(LSig3D);
 
             D0MassK3pi.push_back(d0mass);
             DSMassK3pi.push_back(dsmass);
@@ -662,6 +713,9 @@ void DSD0Analyzer2::loopK3pi(const edm::Event& iEvent, const edm::EventSetup& iS
             D0Vtxerrx3.push_back(v.positionError().cxx());
             D0Vtxerry3.push_back(v.positionError().cyy());
             D0Vtxerrz3.push_back(v.positionError().czz());
+            D0Vtx3cxy.push_back(v.positionError().cyx());
+            D0Vtx3cxz.push_back(v.positionError().czx());
+            D0Vtx3cyz.push_back(v.positionError().czy());
 
             K3piTrkKdxy.push_back(K_f.track().dxy(RecVtx.position()));
             K3piTrk1pidxy.push_back(pi1_f.track().dxy(RecVtx.position()));
@@ -827,14 +881,14 @@ void DSD0Analyzer2::initialize(){
   //ntracks.clear(); PVx.clear(); PVy.clear(); PVz.clear(); PVerrx.clear(); PVerry.clear(); PVerrz.clear();
   dScandsKpi.clear();  dScandsK3pi.clear();  goodTracks.clear(); slowPiTracks.clear();
   //Kpi D* D0
-  D0MassKpi.clear();  DSMassKpi.clear();  D0VtxProb.clear();  D0PtKpi.clear();  DSPtKpi.clear();  D0VtxPosx.clear();
+  D0MassKpi.clear();  DSMassKpi.clear();  D0VtxProb.clear(); D0VtxLSig.clear(); D0VtxLSig3D.clear();  D0PtKpi.clear();  DSPtKpi.clear();  D0VtxPosx.clear();
   D0VtxPosy.clear();  D0VtxPosz.clear();  D0etaKpi.clear();  D0phiKpi.clear();  D0Vtxerrx.clear();  D0Vtxerry.clear();
-  D0Vtxerrz.clear();  DSetaKpi.clear(); DSphiKpi.clear();
+  D0Vtxerrz.clear();  D0Vtxcxy.clear();   D0Vtxcxz.clear();  D0Vtxcyz.clear();  DSetaKpi.clear(); DSphiKpi.clear();
   cosAlphaK3pi.clear(),cosAlphaKpi.clear(),flightLengthK3pi.clear(),flightLengthKpi.clear();
   //K3pi D* D0
-  D0MassK3pi.clear(); DSMassK3pi.clear(); D0MassK3pi1.clear();  DSMassK3pi1.clear();  D0VtxProb3.clear();  D0PtK3pi.clear();  DSPtK3pi.clear();  D0VtxPosx3.clear();
+  D0MassK3pi.clear(); DSMassK3pi.clear(); D0MassK3pi1.clear();  DSMassK3pi1.clear();  D0VtxProb3.clear(); D0Vtx3LSig.clear(); D0Vtx3LSig3D.clear(); D0PtK3pi.clear();  DSPtK3pi.clear();  D0VtxPosx3.clear();
   D0VtxPosy3.clear();  D0VtxPosz3.clear();  D0etaK3pi.clear();  D0phiK3pi.clear();  D0Vtxerrx3.clear();  D0Vtxerry3.clear(); 
-  D0Vtxerrz3.clear(); DSetaK3pi.clear(); DSphiK3pi.clear();
+  D0Vtxerrz3.clear(); D0Vtx3cxy.clear();  D0Vtx3cxz.clear();  D0Vtx3cyz.clear(); DSetaK3pi.clear(); DSphiK3pi.clear();
   D0MassK3pi2.clear(); DSMassK3pi2.clear();
   //Kpi tracks
   KpiTrkKdxy.clear();  KpiTrkpidxy.clear();  KpiTrkSdxy.clear();
@@ -886,12 +940,17 @@ tree2->Branch("lumi",&lumi,"lumi/I");
 tree1->Branch("D0MassKpi",&D0MassKpi);
 tree1->Branch("DSMassKpi",&DSMassKpi);
 tree1->Branch("D0VtxProb",&D0VtxProb);
+tree1->Branch("D0VtxLSig",&D0VtxLSig);
+tree1->Branch("D0VtxLSig3D",&D0VtxLSig3D);
 tree1->Branch("D0VtxPosx",&D0VtxPosx);
 tree1->Branch("D0VtxPosy",&D0VtxPosy);
 tree1->Branch("D0VtxPosz",&D0VtxPosz);
 tree1->Branch("D0Vtxerrx",&D0Vtxerrx);
 tree1->Branch("D0Vtxerry",&D0Vtxerry);
 tree1->Branch("D0Vtxerrz",&D0Vtxerrz);
+tree1->Branch("D0Vtxcxy", &D0Vtxcxy);
+tree1->Branch("D0Vtxcxz", &D0Vtxcxz);
+tree1->Branch("D0Vtxcyz", &D0Vtxcyz);
 tree1->Branch("D0etaKpi",&D0etaKpi);
 tree1->Branch("D0phiKpi",&D0phiKpi);
 tree1->Branch("DSetaKpi",&DSetaKpi);
@@ -906,12 +965,17 @@ tree2->Branch("DSMassK3pi1",&DSMassK3pi1);
 tree2->Branch("D0MassK3pi2",&D0MassK3pi2);
 tree2->Branch("DSMassK3pi2",&DSMassK3pi2);
 tree2->Branch("D0VtxProb3",&D0VtxProb3);
+tree2->Branch("D0Vtx3LSig",&D0Vtx3LSig);
+tree2->Branch("D0Vtx3LSig3D",&D0Vtx3LSig3D);
 tree2->Branch("D0VtxPosx3",&D0VtxPosx3);
 tree2->Branch("D0VtxPosy3",&D0VtxPosy3);
 tree2->Branch("D0VtxPosz3",&D0VtxPosz3);
 tree2->Branch("D0Vtxerrx3",&D0Vtxerrx3);
 tree2->Branch("D0Vtxerry3",&D0Vtxerry3);
 tree2->Branch("D0Vtxerrz3",&D0Vtxerrz3);
+tree2->Branch("D0Vtx3cxy", &D0Vtxcxy);
+tree2->Branch("D0Vtx3cxz", &D0Vtxcxz);
+tree2->Branch("D0Vtx3cyz", &D0Vtxcyz);
 tree2->Branch("D0etaK3pi",&D0etaK3pi);
 tree2->Branch("D0phiK3pi",&D0phiK3pi);
 tree2->Branch("DSetaK3pi",&DSetaK3pi);
@@ -923,6 +987,7 @@ tree2->Branch("flightLengthK3pi", &flightLengthK3pi);
 tree1->Branch("ntracks",&ntracks,"ntracks/I");
 tree2->Branch("ntracks",&ntracks,"ntracks/I");
 //primary vertex
+tree1->Branch("PVOrder",&PVOrder,"PVOrder/I");
 tree1->Branch("nPV",&nPV,"nPV/I");
 tree1->Branch("PVx",&PVx,"PVx/D");
 tree1->Branch("PVy",&PVy,"PVy/D");
@@ -930,6 +995,9 @@ tree1->Branch("PVz",&PVz,"PVz/D");
 tree1->Branch("PVerrx",&PVerrx,"PVerrx/D");
 tree1->Branch("PVerry",&PVerry,"PVerry/D");
 tree1->Branch("PVerrz",&PVerrz,"PVerrz/D");
+tree1->Branch("PVcxy", &PVcxy, "PVcxy/D");
+tree1->Branch("PVcxz", &PVcxz, "PVcxz/D");
+tree1->Branch("PVcyz", &PVcyz, "PVcyz/D");
 tree1->Branch("BSx",&BSx,"BSx/D");
 tree1->Branch("BSy",&BSy,"BSy/D");
 tree1->Branch("BSz",&BSz,"BSz/D");
@@ -937,6 +1005,7 @@ tree1->Branch("BSerrx",&BSerrx,"BSerrx/D");
 tree1->Branch("BSerry",&BSerry,"BSerry/D");
 tree1->Branch("BSerrz",&BSerrz,"BSerrz/D");
 
+tree2->Branch("PVOrder",&PVOrder,"PVOrder/I");
 tree2->Branch("nPV",&nPV,"nPV/I");
 tree2->Branch("PVx",&PVx,"PVx/D");
 tree2->Branch("PVy",&PVy,"PVy/D");
@@ -944,6 +1013,9 @@ tree2->Branch("PVz",&PVz,"PVz/D");
 tree2->Branch("PVerrx",&PVerrx,"PVerrx/D");
 tree2->Branch("PVerry",&PVerry,"PVerry/D");
 tree2->Branch("PVerrz",&PVerrz,"PVerrz/D");
+tree2->Branch("PVcxy", &PVcxy, "PVcxy/D");
+tree2->Branch("PVcxz", &PVcxz, "PVcxz/D");
+tree2->Branch("PVcyz", &PVcyz, "PVcyz/D");
 tree2->Branch("BSx",&BSx,"BSx/D");
 tree2->Branch("BSy",&BSy,"BSy/D");
 tree2->Branch("BSz",&BSz,"BSz/D");
