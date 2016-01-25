@@ -84,7 +84,7 @@ class DSD0Analyzer2 : public edm::EDAnalyzer {
       //Kpi & K3pi D0 D* vector vars
       std::vector<double> D0MassKpi,DSMassKpi,D0VtxProb,D0VtxLSig,D0VtxLSig3D,D0PtKpi,DSPtKpi,D0VtxPosx,D0VtxPosy,D0VtxPosz,D0Vtxerrx,D0Vtxerry,D0Vtxcxy,D0Vtxcxz,D0Vtxcyz;
       std::vector<double> D0Vtxerrz,D0etaKpi,D0phiKpi,DSetaKpi,DSphiKpi,D0MassK3pi,D0MassK3pi1,DSMassK3pi,DSMassK3pi1,D0VtxProb3,D0Vtx3LSig,D0Vtx3LSig3D,D0PtK3pi,DSPtK3pi;
-      std::vector<double> cosAlphaK3pi,cosAlphaKpi,flightLengthK3pi,flightLengthKpi;
+      std::vector<double> cosAlphaK3pi,cosAlphaKpi,cosAlpha3DKpi,cosAlpha3DK3pi,flightLengthK3pi,flightLengthKpi;
       std::vector<double> D0VtxPosx3,D0VtxPosy3,D0VtxPosz3,D0Vtxerrx3,D0Vtxerry3,D0Vtxerrz3,D0Vtx3cxy,D0Vtx3cxz,D0Vtx3cyz,D0etaK3pi,D0phiK3pi;
       std::vector<double> DSetaK3pi,DSphiK3pi,D0MassK3pi2,DSMassK3pi2;
 
@@ -238,9 +238,9 @@ void DSD0Analyzer2::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     PVx = RecVtx.x();
     PVy = RecVtx.y();
     PVz = RecVtx.z();
-    PVerrx = RecVtx.xError();
-    PVerry = RecVtx.yError();
-    PVerrz = RecVtx.zError();
+    PVerrx = sqrt(RecVtx.covariance(0,0));
+    PVerry = sqrt(RecVtx.covariance(1,1));
+    PVerrz = sqrt(RecVtx.covariance(2,2));
     PVcxy = RecVtx.covariance(0,1);
     PVcxz = RecVtx.covariance(0,2);
     PVcyz = RecVtx.covariance(1,2);
@@ -383,22 +383,25 @@ void DSD0Analyzer2::loopKpi(const edm::Event& iEvent, const edm::EventSetup& iSe
         math::XYZVector D0_3vector = math::XYZVector(d0_p4.Px(), d0_p4.Py(), d0_p4.Pz());
         double cosalpha = (displacement.Dot(D0_3vector) - displacement.Z()*D0_3vector.Z() ) / ( sqrt(displacement.perp2()) * sqrt(D0_3vector.perp2()) );
         //double flightlength = sqrt(displacement.perp2()) * (cosalpha/fabs(cosalpha)); // flight length in the transverse plane
-        double flightlength = sqrt(displacement.perp2()) * cosalpha; // flight length in the transverse plane in the direction of momentum (what we call lifetime in AN)
+        //double flightlength = sqrt(displacement.perp2()) * cosalpha; // flight length in the transverse plane in the direction of momentum (what we call lifetime in AN)
+        double flightlength = sqrt( displacement.perp2());
 
         // calculate lifetime significance
         double deriv_x = displacement.X() / fabs(flightlength);
         double deriv_y = displacement.Y() / fabs(flightlength);
     
-        double sigma_L = pow(deriv_x,2) * (PVerrx + v.positionError().cxx()) + pow(deriv_y,2) * (PVerry + v.positionError().cyy()) + 2*deriv_x*deriv_y * (PVcxy + v.positionError().cyx());
+        double sigma_L = pow(deriv_x,2) * (pow(PVerrx,2) + v.positionError().cxx()) + pow(deriv_y,2) * (pow(PVerry,2) + v.positionError().cyy()) + 2*deriv_x*deriv_y * (PVcxy + v.positionError().cyx());
         sigma_L = sqrt(sigma_L);
         double LSig = flightlength / sigma_L;
         
-        double flightlength3D = (displacement.Dot(D0_3vector) ) / ( sqrt(D0_3vector.Mag2()) );
+        //double flightlength3D = (displacement.Dot(D0_3vector) ) / ( sqrt(D0_3vector.Mag2()) );
+        double flightlength3D = sqrt(displacement.Mag2());
+        double cosalpha3D = (displacement.Dot(D0_3vector) ) / ( sqrt(D0_3vector.Mag2()) * sqrt(displacement.Mag2()) );
         double deriv3D_x = displacement.X() / fabs(flightlength3D);
         double deriv3D_y = displacement.Y() / fabs(flightlength3D);
         double deriv3D_z = displacement.Z() / fabs(flightlength3D);
 
-        double sigma_L3D = pow(deriv3D_x,2) * (PVerrx + v.positionError().cxx()) + pow(deriv3D_y,2) * (PVerry + v.positionError().cyy()) + pow(deriv3D_z,2) * (PVerrz + v.positionError().czz()) + 2*deriv3D_x*deriv3D_y * (PVcxy + v.positionError().cyx()) + 2*deriv3D_x*deriv3D_z * (PVcxz + v.positionError().czx()) + 2*deriv3D_y*deriv3D_z * (PVcyz + v.positionError().czy());
+        double sigma_L3D = pow(deriv3D_x,2) * (pow(PVerrx,2) + v.positionError().cxx()) + pow(deriv3D_y,2) * (pow(PVerry,2) + v.positionError().cyy()) + pow(deriv3D_z,2) * (pow(PVerrz,2) + v.positionError().czz()) + 2*deriv3D_x*deriv3D_y * (PVcxy + v.positionError().cyx()) + 2*deriv3D_x*deriv3D_z * (PVcxz + v.positionError().czx()) + 2*deriv3D_y*deriv3D_z * (PVcyz + v.positionError().czy());
 
         sigma_L3D = sqrt(sigma_L3D);
         double LSig3D = flightlength3D / sigma_L3D;
@@ -434,15 +437,16 @@ void DSD0Analyzer2::loopKpi(const edm::Event& iEvent, const edm::EventSetup& iSe
         DSetaKpi.push_back(dS_p4.eta());
         DSphiKpi.push_back(dS_p4.phi());
 
+        cosAlpha3DKpi.push_back(cosalpha3D);
         cosAlphaKpi.push_back(cosalpha);
         flightLengthKpi.push_back(flightlength);
 
         D0VtxPosx.push_back(v.position().x());
         D0VtxPosy.push_back(v.position().y());
         D0VtxPosz.push_back(v.position().z());
-        D0Vtxerrx.push_back(v.positionError().cxx());
-        D0Vtxerry.push_back(v.positionError().cyy());
-        D0Vtxerrz.push_back(v.positionError().czz());
+        D0Vtxerrx.push_back(sqrt(v.positionError().cxx()));
+        D0Vtxerry.push_back(sqrt(v.positionError().cyy()));
+        D0Vtxerrz.push_back(sqrt(v.positionError().czz()));
         D0Vtxcxy.push_back(v.positionError().cyx());
         D0Vtxcxz.push_back(v.positionError().czx());
         D0Vtxcyz.push_back(v.positionError().czy());
@@ -647,22 +651,25 @@ void DSD0Analyzer2::loopK3pi(const edm::Event& iEvent, const edm::EventSetup& iS
             math::XYZVector D0_3vector = math::XYZVector(p4_D0.Px(), p4_D0.Py(), p4_D0.Pz());
             double cosalpha = (displacement.Dot(D0_3vector) - displacement.Z()*D0_3vector.Z() ) / ( sqrt(displacement.perp2()) * sqrt(D0_3vector.perp2()) );
             //double flightlength = sqrt(displacement.perp2()) * (cosalpha/fabs(cosalpha)); // flight length in the transverse plane
-            double flightlength = sqrt(displacement.perp2()) * cosalpha; // flight length in the transverse plane in the direction of momentum (what we call lifetime in AN)
-
+            //double flightlength = sqrt(displacement.perp2()) * cosalpha; // flight length in the transverse plane in the direction of momentum (what we call lifetime in AN)
+            double flightlength = sqrt(displacement.perp2());
+  
             // calculate lifetime significance
             double deriv_x = displacement.X() / fabs(flightlength);
             double deriv_y = displacement.Y() / fabs(flightlength);
     
-            double sigma_L = pow(deriv_x,2) * (PVerrx + v.positionError().cxx()) + pow(deriv_y,2) * (PVerry + v.positionError().cyy()) + 2*deriv_x*deriv_y * (PVcxy + v.positionError().cyx());
+            double sigma_L = pow(deriv_x,2) * (pow(PVerrx,2) + v.positionError().cxx()) + pow(deriv_y,2) * (pow(PVerry,2) + v.positionError().cyy()) + 2*deriv_x*deriv_y * (PVcxy + v.positionError().cyx());
             sigma_L = sqrt(sigma_L);
             double LSig = flightlength / sigma_L;
         
-            double flightlength3D = (displacement.Dot(D0_3vector) ) / ( sqrt(D0_3vector.Mag2()) );
+            //double flightlength3D = (displacement.Dot(D0_3vector) ) / ( sqrt(D0_3vector.Mag2()) );
+            double flightlength3D = sqrt(displacement.Mag2());
+            double cosalpha3D = (displacement.Dot(D0_3vector) ) / ( sqrt(D0_3vector.Mag2()) * sqrt(displacement.Mag2()) );
             double deriv3D_x = displacement.X() / fabs(flightlength3D);
             double deriv3D_y = displacement.Y() / fabs(flightlength3D);
             double deriv3D_z = displacement.Z() / fabs(flightlength3D);
 
-            double sigma_L3D = pow(deriv3D_x,2) * (PVerrx + v.positionError().cxx()) + pow(deriv3D_y,2) * (PVerry + v.positionError().cyy()) + pow(deriv3D_z,2) * (PVerrz + v.positionError().czz()) + 2*deriv3D_x*deriv3D_y * (PVcxy + v.positionError().cyx()) + 2*deriv3D_x*deriv3D_z * (PVcxz + v.positionError().czx()) + 2*deriv3D_y*deriv3D_z * (PVcyz + v.positionError().czy());
+            double sigma_L3D = pow(deriv3D_x,2) * (pow(PVerrx,2) + v.positionError().cxx()) + pow(deriv3D_y,2) * (pow(PVerry,2) + v.positionError().cyy()) + pow(deriv3D_z,2) * (pow(PVerrz,2) + v.positionError().czz()) + 2*deriv3D_x*deriv3D_y * (PVcxy + v.positionError().cyx()) + 2*deriv3D_x*deriv3D_z * (PVcxz + v.positionError().czx()) + 2*deriv3D_y*deriv3D_z * (PVcyz + v.positionError().czy());
 
             sigma_L3D = sqrt(sigma_L3D);
             double LSig3D = flightlength3D / sigma_L3D;
@@ -704,15 +711,16 @@ void DSD0Analyzer2::loopK3pi(const edm::Event& iEvent, const edm::EventSetup& iS
             D0MassK3pi2.push_back(p4_D0_.M());
             DSMassK3pi2.push_back(p4_DS_.M());
 
+            cosAlpha3DK3pi.push_back(cosalpha3D);
             cosAlphaK3pi.push_back(cosalpha);
             flightLengthK3pi.push_back(flightlength);
 
             D0VtxPosx3.push_back(v.position().x());
             D0VtxPosy3.push_back(v.position().y());
             D0VtxPosz3.push_back(v.position().z());
-            D0Vtxerrx3.push_back(v.positionError().cxx());
-            D0Vtxerry3.push_back(v.positionError().cyy());
-            D0Vtxerrz3.push_back(v.positionError().czz());
+            D0Vtxerrx3.push_back(sqrt(v.positionError().cxx()));
+            D0Vtxerry3.push_back(sqrt(v.positionError().cyy()));
+            D0Vtxerrz3.push_back(sqrt(v.positionError().czz()));
             D0Vtx3cxy.push_back(v.positionError().cyx());
             D0Vtx3cxz.push_back(v.positionError().czx());
             D0Vtx3cyz.push_back(v.positionError().czy());
@@ -884,7 +892,7 @@ void DSD0Analyzer2::initialize(){
   D0MassKpi.clear();  DSMassKpi.clear();  D0VtxProb.clear(); D0VtxLSig.clear(); D0VtxLSig3D.clear();  D0PtKpi.clear();  DSPtKpi.clear();  D0VtxPosx.clear();
   D0VtxPosy.clear();  D0VtxPosz.clear();  D0etaKpi.clear();  D0phiKpi.clear();  D0Vtxerrx.clear();  D0Vtxerry.clear();
   D0Vtxerrz.clear();  D0Vtxcxy.clear();   D0Vtxcxz.clear();  D0Vtxcyz.clear();  DSetaKpi.clear(); DSphiKpi.clear();
-  cosAlphaK3pi.clear(),cosAlphaKpi.clear(),flightLengthK3pi.clear(),flightLengthKpi.clear();
+  cosAlphaK3pi.clear(); cosAlphaKpi.clear(); cosAlpha3DKpi.clear(); cosAlpha3DK3pi.clear(); flightLengthK3pi.clear() ;flightLengthKpi.clear();
   //K3pi D* D0
   D0MassK3pi.clear(); DSMassK3pi.clear(); D0MassK3pi1.clear();  DSMassK3pi1.clear();  D0VtxProb3.clear(); D0Vtx3LSig.clear(); D0Vtx3LSig3D.clear(); D0PtK3pi.clear();  DSPtK3pi.clear();  D0VtxPosx3.clear();
   D0VtxPosy3.clear();  D0VtxPosz3.clear();  D0etaK3pi.clear();  D0phiK3pi.clear();  D0Vtxerrx3.clear();  D0Vtxerry3.clear(); 
@@ -956,6 +964,7 @@ tree1->Branch("D0phiKpi",&D0phiKpi);
 tree1->Branch("DSetaKpi",&DSetaKpi);
 tree1->Branch("DSphiKpi",&DSphiKpi);
 tree1->Branch("cosAlphaKpi",&cosAlphaKpi);
+tree1->Branch("cosAlpha3DKpi",&cosAlpha3DKpi);
 tree1->Branch("flightLengthKpi", &flightLengthKpi);
 
 tree2->Branch("D0MassK3pi", &D0MassK3pi);
@@ -973,14 +982,15 @@ tree2->Branch("D0VtxPosz3",&D0VtxPosz3);
 tree2->Branch("D0Vtxerrx3",&D0Vtxerrx3);
 tree2->Branch("D0Vtxerry3",&D0Vtxerry3);
 tree2->Branch("D0Vtxerrz3",&D0Vtxerrz3);
-tree2->Branch("D0Vtx3cxy", &D0Vtxcxy);
-tree2->Branch("D0Vtx3cxz", &D0Vtxcxz);
-tree2->Branch("D0Vtx3cyz", &D0Vtxcyz);
+tree2->Branch("D0Vtx3cxy", &D0Vtx3cxy);
+tree2->Branch("D0Vtx3cxz", &D0Vtx3cxz);
+tree2->Branch("D0Vtx3cyz", &D0Vtx3cyz);
 tree2->Branch("D0etaK3pi",&D0etaK3pi);
 tree2->Branch("D0phiK3pi",&D0phiK3pi);
 tree2->Branch("DSetaK3pi",&DSetaK3pi);
 tree2->Branch("DSphiK3pi",&DSphiK3pi);
 tree2->Branch("cosAlphaK3pi", &cosAlphaK3pi);
+tree2->Branch("cosAlpha3DK3pi", &cosAlpha3DK3pi);
 tree2->Branch("flightLengthK3pi", &flightLengthK3pi);
 
 //tracks
