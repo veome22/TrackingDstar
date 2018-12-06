@@ -1,0 +1,10 @@
+/ZeroBias/Run2018A-LogError-PromptReco-v1/RAW-RECO
+/ZeroBias/Run2018A-LogError-PromptReco-v2/RAW-RECO
+/ZeroBias/Run2018A-LogError-PromptReco-v3/RAW-RECO
+/ZeroBias/Run2018B-LogError-PromptReco-v1/RAW-RECO
+/ZeroBias/Run2018B-LogError-PromptReco-v2/RAW-RECO
+/ZeroBias/Run2018C-LogError-PromptReco-v1/RAW-RECO
+/ZeroBias/Run2018C-LogError-PromptReco-v2/RAW-RECO
+/ZeroBias/Run2018C-LogError-PromptReco-v3/RAW-RECO
+/ZeroBias/Run2018D-LogError-PromptReco-v1/RAW-RECO
+/ZeroBias/Run2018D-LogError-PromptReco-v2/RAW-RECO
