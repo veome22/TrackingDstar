@@ -1,7 +1,7 @@
 from CRABClient.UserUtilities import config, getUsernameFromSiteDB
 config = config()
 
-config.General.requestName = 'LambdaAnalysis_ZeroBias_Nov23_Run2018E_LogError_PromptReco_v1-newJSON'
+config.General.requestName = 'LambdaAnalysis_ZeroBias_Dec17_Run2018B_LogError_PromptReco_v1_noPXB1Hits'
 config.General.workArea = 'crab_projects'
 config.General.transferOutputs = True
 config.General.transferLogs = False
@@ -9,7 +9,7 @@ config.General.transferLogs = False
 config.JobType.pluginName = 'Analysis'
 config.JobType.psetName = 'trkeffanalyzer_Data_GeneralTracks_cfg.py'
 
-config.Data.inputDataset = '/ZeroBias/Run2018E-LogError-PromptReco-v1/RAW-RECO'
+config.Data.inputDataset = '/ZeroBias/Run2018B-LogError-PromptReco-v1/RAW-RECO'
 config.Data.inputDBS = 'global'
 config.Data.splitting = 'LumiBased'
 config.Data.unitsPerJob = 20

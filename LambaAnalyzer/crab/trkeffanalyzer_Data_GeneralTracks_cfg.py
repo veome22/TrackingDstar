@@ -26,15 +26,16 @@ process.load("Configuration.StandardSequences.Reconstruction_cff")
 #process.GlobalTag.globaltag = 'GR_P_V56::All'
 process.GlobalTag.globaltag = '101X_dataRun2_Prompt_v11'
 
-#process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(5000) )
+####process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
 #process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000) )
 
 #filelist = FileUtils.loadListFromFile("inputlist.list")
 #filelist = FileUtils.loadListFromFile("onefile.list")
+#filelist = FileUtils.loadListFromFile("test.list")
 
 process.source = cms.Source('PoolSource',
 #fileNames = cms.untracked.vstring(*filelist),
-fileNames = cms.untracked.vstring(#'/store/data/Run2018C/ZeroBias/RAW-RECO/LogError-PromptReco-v1/000/319/347/00000/86EFC8CD-DE84-E811-8983-FA163EC985ED.root'
+fileNames = cms.untracked.vstring(
 '/store/data/Run2018C/ZeroBias/RAW-RECO/LogError-PromptReco-v1/000/319/347/00000/86EFC8CD-DE84-E811-8983-FA163EC985ED.root'
 ),
 #skipEvents = cms.untracked.uint32(100000)
@@ -74,7 +75,8 @@ from SimTracker.TrackAssociation.LhcParametersDefinerForTP_cfi import *
 from SimTracker.TrackAssociation.CosmicParametersDefinerForTP_cfi import *
 from Validation.RecoTrack.MTVHistoProducerAlgoForTrackerBlock_cfi import *
 
-#import FWCore.PythonUtilities.LumiList as LumiList
+import FWCore.PythonUtilities.LumiList as LumiList
+process.source.lumisToProcess = LumiList.LumiList(filename = 'Cert_314472-325175_13TeV_PromptReco_Collisions18_JSON.txt').getVLuminosityBlockRange()
 #process.source.lumisToProcess = LumiList.LumiList(filename = 'Cert_314472-319851_13TeV_PromptReco_Collisions18_JSON.txt').getVLuminosityBlockRange()
 
 #process.Tracks2Vertex = AssociationMaps.clone()
@@ -152,6 +154,7 @@ process.analyzer = cms.EDAnalyzer('LambdaAnalyzer',
     doK3pi=cms.bool(True),
     doKpi=cms.bool(True),
     
+    tracks_noPXB1 = cms.untracked.InputTag("ctfProducerCustomised"),
     tracks = cms.untracked.InputTag("generalTracks"),
     vertices = cms.untracked.InputTag("offlinePrimaryVertices"),
     genParticles = cms.untracked.InputTag("genParticles"),
@@ -173,9 +176,69 @@ process.TFileService = cms.Service("TFileService",
 #)
 process.content = cms.EDAnalyzer("EventContentAnalyzer")
 
+#process.load("RecoVertex.BeamSpotProducer.BeamSpot_cff")
+## parameters for TrackRefitter
+#import RecoTracker.TrackProducer.TrackRefitters_cff
+#process.TrackRefitter1 = RecoTracker.TrackProducer.TrackRefitter_cfi.TrackRefitter.clone()
+#process.TrackRefitter1.src = 'generalTracks'
+#process.TrackRefitter1.TTRHBuilder = "WithAngleAndTemplate"
+
+# parameters for TrackRefitter
+import RecoTracker.TrackProducer.TrackRefitters_cff
+process.TrackRefitter1 = RecoTracker.TrackProducer.TrackRefitter_cfi.TrackRefitter.clone()
+process.TrackRefitter1.src = 'generalTracks'
+
+process.load("RecoVertex.BeamSpotProducer.BeamSpot_cff")
+process.load("RecoTracker.FinalTrackSelectors.TrackerTrackHitFilter_cff")
+process.TrackerTrackHitFilter.src = 'TrackRefitter1'
+#process.TrackerTrackHitFilter.src = 'generalTracks'
+process.TrackerTrackHitFilter.commands = cms.vstring("drop PXB","keep PXB 2","keep PXB 3","keep PXB 4","keep PXE","keep TIB","keep TID","keep TOB","keep TEC")
+
+#process.TrackerTrackHitFilter.useTrajectories= True  # this is needed only if you require some selections; but it will work even if you don't ask for them
+#process.TrackerTrackHitFilter.minimumHits = 6
+#process.TrackerTrackHitFilter.commands = cms.vstring("keep PXB","keep PXE","keep TIB","keep TID","keep TOB","keep TEC")
+#process.TrackerTrackHitFilter.replaceWithInactiveHits = True
+#process.TrackerTrackHitFilter.stripAllInvalidHits = False
+#process.TrackerTrackHitFilter.rejectBadStoNHits = True
+#process.TrackerTrackHitFilter.StoNcommands = cms.vstring("ALL 18.0")
+#process.TrackerTrackHitFilter.rejectLowAngleHits= True
+#process.TrackerTrackHitFilter.TrackAngleCut= 0.35 # in rads, starting from the module surface
+#process.TrackerTrackHitFilter.usePixelQualityFlag= True
+
+#process.load("FWCore.MessageLogger.MessageLogger_cfi")
+#process.MessageLogger = cms.Service("MessageLogger",
+#       destinations   = cms.untracked.vstring(
+#                                             'detailedInfo'
+#                                               ,'critical'
+#                                               ,'cerr'
+#                    ),
+#       critical       = cms.untracked.PSet(
+#                        threshold = cms.untracked.string('ERROR') 
+#        ),
+#       detailedInfo   = cms.untracked.PSet(
+#                      threshold  = cms.untracked.string('INFO') 
+#       ),
+#       cerr           = cms.untracked.PSet(
+#                       threshold  = cms.untracked.string('WARNING') 
+#        ),
+#        debugModules  = cms.untracked.vstring('*'),
+#        #debugModules  = cms.untracked.vstring('ctfProducerCustomised'),
+#)
+
+
+# Might want to customize other options of the tracker track hit filter
+# Refit tracks after hit filter
+# You might want to customize the options, or use a different refitter
+import RecoTracker.TrackProducer.CTFFinalFitWithMaterial_cff
+process.ctfProducerCustomised = RecoTracker.TrackProducer.CTFFinalFitWithMaterial_cff.ctfWithMaterialTracks.clone()
+process.ctfProducerCustomised.src = 'TrackerTrackHitFilter'
 
 #process.all = cms.Path(process.bscMinBias*process.analyzer)
-process.all = cms.Path(process.analyzer)
+process.all = cms.Path(process.MeasurementTrackerEvent*process.TrackRefitter1*process.TrackerTrackHitFilter*process.ctfProducerCustomised*process.analyzer)
+#process.all = cms.Path(process.TrackerTrackHitFilter*process.ctfProducerCustomised*process.analyzer)
+#process.all = cms.Path(process.TrackRefitter1*process.TrackerTrackHitFilter*process.ctfProducerCustomised)
+#process.all = cms.Path(process.TrackerTrackHitFilter*process.ctfProducerCustomised*process.analyzer)
+####process.all = cms.Path(process.analyzer)
 ###process.all = cms.Path(process.Tracks2Vertex*process.analyzer)
 ####process.all = cms.Path(process.trig*process.Tracks2Vertex*process.analyzer)
 #process.all = cms.Path(process.trig*process.analyzer)

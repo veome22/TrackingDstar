@@ -1,7 +1,8 @@
 from CRABClient.UserUtilities import config, getUsernameFromSiteDB
 config = config()
 
-config.General.requestName = 'LambdaAnalysis_Dec7_QCD_Pt-15to7000_TuneCP5_Flat2018_13TeV_pythia8_GENSIMRECO'
+config.General.requestName = 'LambdaAnalysis_Dec17_SingleNeutrino_GENSIMRECO_wPXB1RemovedVertexAttempt'
+#config.General.requestName = 'LambdaAnalysis_Dec7_QCD_Pt-15to7000_TuneCP5_Flat2018_13TeV_pythia8_GENSIMRECO'
 config.General.workArea = 'crab_projects'
 config.General.transferOutputs = True
 config.General.transferLogs = False
@@ -9,7 +10,8 @@ config.General.transferLogs = False
 config.JobType.pluginName = 'Analysis'
 config.JobType.psetName = 'trkeffanalyzer_MC_GeneralTracks_cfg.py'
 
-config.Data.inputDataset = '/QCD_Pt-15to7000_TuneCP5_Flat2018_13TeV_pythia8/RunIIAutumn18DRPremix-102X_upgrade2018_realistic_v15_ext1-v2/GEN-SIM-RECO'
+#config.Data.inputDataset = '/QCD_Pt-15to7000_TuneCP5_Flat2018_13TeV_pythia8/RunIIAutumn18DRPremix-102X_upgrade2018_realistic_v15_ext1-v2/GEN-SIM-RECO'
+config.Data.inputDataset = '/SingleNeutrino/RunIIAutumn18DRPremix-forRECO_102X_upgrade2018_realistic_v15_ext1-v1/GEN-SIM-RECO'
 config.Data.inputDBS = 'global'
 config.Data.splitting = 'FileBased'
 config.Data.unitsPerJob = 2

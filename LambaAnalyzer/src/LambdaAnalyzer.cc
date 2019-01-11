@@ -50,6 +50,8 @@
 #include "DataFormats/Common/interface/OneToManyWithQuality.h"
 #include "DataFormats/Common/interface/OneToManyWithQualityGeneric.h"
 
+#include "DataFormats/SiPixelDetId/interface/PXBDetId.h"
+
 class LambdaAnalyzer : public edm::EDAnalyzer {
    public:
       explicit LambdaAnalyzer(const edm::ParameterSet&);
@@ -66,11 +68,12 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       // ----------member data ---------------------------
       bool doGen, doK3pi, doKpi;
       double m_pi, m_K, m_p;
-      std::vector<int> dScandsKpi;
+      std::vector<int> LambdaDPicands;
       std::vector<int> dScandsK3pi;
       std::vector<reco::TransientTrack*> goodTracks;
       std::vector<reco::TransientTrack*> slowPiTracks;
       std::vector<reco::TransientTrack> t_tks;
+      std::vector<reco::TransientTrack> t_tks_noPXB1;
       TTree *tree1;
       
 
@@ -83,10 +86,12 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       //Kpi & K3pi Lambda D* vector vars
       std::vector<double> LambdaMass,DSMassKpi,LambdaVtxProb,LambdaVtxLSig,LambdaVtxLSig3D,LambdaPtKpi,DSPtKpi,LambdaVtxPosx,LambdaVtxPosy,LambdaVtxPosz,LambdaVtxerrx,LambdaVtxerry,LambdaVtxcxy,LambdaVtxcxz,LambdaVtxcyz;
       std::vector<double> LambdaVtxerrz,Lambdaeta,Lambdaphi,DSetaKpi,DSphiKpi,LambdaMassK3pi,LambdaMassK3pi1,DSMassK3pi,DSMassK3pi1,LambdaVtxProb3,LambdaVtx3LSig,LambdaVtx3LSig3D,LambdaPtK3pi,DSPtK3pi,LamdaVertexCAx,LamdaVertexCAy,LamdaVertexCAz;
-      std::vector<double> cosAlphaK3pi,cosAlpha,cosAlpha3D,cosAlpha3DK3pi,flightLengthK3pi,flightLength;
+      std::vector<double> cosAlphaK3pi,cosAlpha,cosAlpha3D,cosAlpha3DK3pi,flightLengthK3pi,flightLength,flightLength_noPXB1,flightLength_noPXB1_error;
       std::vector<double> LambdaVtxPosx3,LambdaVtxPosy3,LambdaVtxPosz3,LambdaVtxerrx3,LambdaVtxerry3,LambdaVtxerrz3,LambdaVtx3cxy,LambdaVtx3cxz,LambdaVtx3cyz,LambdaetaK3pi,LambdaphiK3pi;
       std::vector<double> DSetaK3pi,DSphiK3pi,LambdaMassK3proton,DSMassK3proton;
 
+      std::vector<int> LambdaSharedHitLayer,LambdaSharedHitLadder,LambdaSharedHitModule;
+ 
       //primarty vtx vars
       double PVx,PVy,PVz,PVerrx,PVerry,PVerrz,PVcxy,PVcxz,PVcyz;
       double BSx,BSy,BSz,BSerrx,BSerry,BSerrz;
@@ -106,7 +111,7 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       std::vector<double> KpiDSDeltaR;
       std::vector<double> KpiTrkScharge;
       //MC
-      std::vector<double> MCDsDeltaR;
+      std::vector<double> MCLambdaDeltaR;
       //K3pi tracks vars
       std::vector<double> K3piTrkKnhits,K3piTrk1pinhits,K3piTrk2pinhits,K3piTrk3pinhits,K3piTrkSnhits;
       std::vector<double> K3piTrkKchi2,K3piTrk1pichi2,K3piTrk2pichi2,K3piTrk3pichi2,K3piTrkSchi2;
@@ -118,10 +123,11 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       std::vector<double> K3piDSDeltaR;
       std::vector<double> K3piTrkScharge;
       //MC
-      std::vector<double> MCDsDeltaR3;
+      std::vector<double> MCLambdaDeltaR3;
       std::vector<int> K3pi_MC_mode;
 
       edm::EDGetTokenT<reco::TrackCollection> TrackCollT_;
+      edm::EDGetTokenT<reco::TrackCollection> TrackCollT_noPXB1_;
       edm::EDGetTokenT<reco::VertexCollection> VtxCollT_;
       edm::EDGetTokenT<reco::GenParticleCollection> GenCollT_;
   
@@ -143,6 +149,7 @@ LambdaAnalyzer::LambdaAnalyzer(const edm::ParameterSet& iConfig):
    //tree2 = fs->make<TTree>("tree2","tree2");
   
    TrackCollT_ = consumes<reco::TrackCollection>(iConfig.getUntrackedParameter<edm::InputTag>("tracks"));
+   TrackCollT_noPXB1_ = consumes<reco::TrackCollection>(iConfig.getUntrackedParameter<edm::InputTag>("tracks_noPXB1"));
    VtxCollT_ = consumes<reco::VertexCollection>(iConfig.getUntrackedParameter<edm::InputTag>("vertices"));
    GenCollT_ = consumes<reco::GenParticleCollection>(iConfig.getUntrackedParameter<edm::InputTag>("genParticles"));
    T2VCollT_ = consumes<TrackVertexAssMap>(iConfig.getUntrackedParameter<edm::InputTag>("T2V"));
@@ -227,13 +234,17 @@ void LambdaAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
   Handle<TrackCollection> generalTracks;
   iEvent.getByToken(TrackCollT_, generalTracks);
+  Handle<TrackCollection> generalTracks_noPXB1;
+  iEvent.getByToken(TrackCollT_noPXB1_, generalTracks_noPXB1);
   //iEvent.getByLabel("generalTracks",generalTracks);
 
 
 
   edm::ESHandle<TransientTrackBuilder> theB;
   iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",theB);
+  ///////t_tks = (*theB).build(generalTracks_noPXB1);
   t_tks = (*theB).build(generalTracks);
+  t_tks_noPXB1 = (*theB).build(generalTracks_noPXB1);
 
   // Primary Vtx with most tracks
   Handle<reco::VertexCollection> recVtxs;
@@ -422,6 +433,7 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
         double d0_2_error = traj2.perigeeError().transverseImpactParameterError();
         //if ( (d0_1/d0_1_error) > 4.0 || (d0_2/d0_2_error) > 4.0) continue;
         
+
  
         math::XYZTLorentzVector ip4_pi1(pi1_f.track().px(),pi1_f.track().py(),pi1_f.track().pz(),sqrt(pow(pi1_f.track().p(),2)+pow(m_pi,2)));
         math::XYZTLorentzVector ip4_proton(proton_f.track().px(),proton_f.track().py(),proton_f.track().pz(),sqrt(pow(proton_f.track().p(),2)+pow(m_p,2)));
@@ -484,16 +496,154 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
         
           double dR = 99.;
  
-          for(size_t i=0; i<dScandsKpi.size();i++){
-            const GenParticle & ds = genParticles->at(dScandsKpi.at(i));
-            //double delta_R = deltaR(dS_p4.eta(),dS_p4.phi(),ds.eta(),ds.phi());
-            double delta_R = 99.;
-            if(delta_R < 0.15 && delta_R < dR)
+          for(size_t i=0; i<LambdaDPicands.size();i++){
+            const reco::GenParticle & la = genParticles->at(LambdaDPicands.at(i));
+            double delta_R = deltaR(ip4_Lambda.eta(),ip4_Lambda.phi(),la.eta(),la.phi());
+            //double delta_R = 99.;
+            //if(delta_R < 0.15 && delta_R < dR)
+            if(delta_R < dR)
               dR = delta_R;
           }
 
-          MCDsDeltaR.push_back(dR);
+          MCLambdaDeltaR.push_back(dR);
         }
+        // little test
+        //std::cout<<"testing..."<<std::endl;
+        //std::cout<<pi1_f.numberOfValidHits()<<std::endl;
+        //std::cout<<pi1->hitPattern().getHitPattern(reco::HitPattern::HitCategory::TRACK_HITS,0)<<std::endl;
+        //for (int i=0; i<pi1->numberOfValidHits(); i++) {
+        //    std::cout<<"i = "<<i<<std::endl;
+        //    std::cout<<pi1->hitPattern().getHitPattern(reco::HitPattern::HitCategory::TRACK_HITS,i)<<std::endl;
+
+        //}
+        //for (int i=0; i<proton->numberOfValidHits(); i++) {
+        //    std::cout<<"i = "<<i<<std::endl;
+        //    std::cout<<proton->hitPattern().getHitPattern(reco::HitPattern::HitCategory::TRACK_HITS,i)<<std::endl;
+
+        //}
+        //pixelBarrelHitFilter
+//        int nSharedPBHits = 0;
+//        std::vector<uint16_t> pion_pxb_hits;
+//        reco::HitPattern hp_pion = pi1->hitPattern();
+//        reco::HitPattern hp_proton = proton->hitPattern();
+//        for (int i=0; i<pi1->numberOfValidHits(); i++) {
+//            uint16_t hit = hp_pion.getHitPattern(reco::HitPattern::HitCategory::TRACK_HITS,i);
+//            if (!hp_pion.validHitFilter(hit) || !hp_pion.pixelBarrelHitFilter(hit)) { continue;}
+//            pion_pxb_hits.push_back(hit);
+//        }
+//        for (int i=0; i<proton->numberOfValidHits(); i++) {
+//            uint16_t hit2 = hp_proton.getHitPattern(reco::HitPattern::HitCategory::TRACK_HITS,i);
+//            if (!hp_proton.validHitFilter(hit2) || !hp_proton.pixelBarrelHitFilter(hit2)) { continue;}
+//            if(std::find(pion_pxb_hits.begin(), pion_pxb_hits.end(), hit2) != pion_pxb_hits.end()) {
+//                nSharedPBHits += 1;
+//                std::cout<<"found shared pixel barrel hit! : "<<hit2<<" layer : "<<hp_proton.getLayer(hit2)<<std::endl;
+//            }
+//        }
+//        std::cout<<"nSharedPBHits = "<<nSharedPBHits<<std::endl;
+        trackingRecHit_iterator hb_pi1 = pi1->recHitsBegin();
+        trackingRecHit_iterator hb_proton = proton->recHitsBegin();
+        TrackingRecHit const * h1[4] = { (*hb_pi1), (*(hb_pi1+1)), (*(hb_pi1+2)), (*(hb_pi1+3))  };
+        TrackingRecHit const * h2[4] = { (*hb_proton), (*(hb_proton+1)), (*(hb_proton+2)), (*(hb_proton+3)) };
+        //std::cout<<"new lambda pairing"<<std::endl;
+        bool foundSharedHit = false;
+        bool foundSharedHitLayer0 = true;
+        for (int k1=0; k1<4; k1++) {
+            if (!h1[k1]->isValid()) continue;
+            for (int k2=0; k2<4; k2++) {
+                if (!h2[k2]->isValid()) continue;
+                bool shared = h1[k1]->sharesInput(h2[k2],TrackingRecHit::some);
+                if (shared) {
+                    //std::cout<<"k1, k2 = "<<k1<<" : "<<k2<<std::endl;
+                    //std::cout<<"h1[k1], h2[k2] = "<<h1[k1]<<" : "<<h2[k2]<<std::endl;
+                    //std::cout<<h1[k1]->geographicalId()<<std::endl;
+                    PXBDetId pxb_id = h1[k1]->geographicalId();
+                    //std::cout<<pxb_id.layer()<<std::endl;
+                    //std::cout<<pxb_id.ladder()<<std::endl;
+                    //std::cout<<pxb_id.module()<<std::endl;
+                    LambdaSharedHitLayer.push_back(pxb_id.layer());
+                    LambdaSharedHitLadder.push_back(pxb_id.ladder());
+                    LambdaSharedHitModule.push_back(pxb_id.module());
+                    foundSharedHit = true;
+                    if (pxb_id.layer() == 0) {
+                        foundSharedHitLayer0 = true;
+                    }
+                    break; // only consider the innermost shared hit
+                    //std::cout<<int(h1[k1]->geographicalId())<<std::endl;
+                    //std::cout<<h1[k1]->det().subDetector().<<std::endl;
+                    //std::cout<<h1[k1]->globalPosition().perp()<<std::endl;
+                    //std::cout<<"position = "<<h1[k1]->globalPosition().x()<<" : "<<h1[k1]->globalPosition().y()<<" : "<<h1[k1]->globalPosition().z()<<" : "<<std::endl;
+                }
+            }
+        }
+        if (!foundSharedHit) {
+            LambdaSharedHitLayer.push_back(-99);
+            LambdaSharedHitLadder.push_back(-99);
+            LambdaSharedHitModule.push_back(-99);
+        } 
+
+        double flightlength_noPXB1 = -99.;
+        double flightlength_noPXB1_error = -99.;
+        // try to rebuild Lambda candidate using the corresponding proton/pion tracks with hits at layer 0 removed
+        if (foundSharedHitLayer0) {
+            double minDR_pi1 = 999.;
+            double minDR_proton = 999.;
+            TransientTrack pi1_noPXB1; 
+            TransientTrack proton_noPXB1; 
+            for (size_t j=0;j<t_tks_noPXB1.size();j++) {
+                TransientTrack t_trk = t_tks_noPXB1.at(j);
+         
+                if( fabs(t_trk.track().eta())<2.4 && 
+                        t_trk.track().pt() > 0.25){
+                    if( (t_trk.track().numberOfValidHits() >= 6) && (t_trk.track().pt() > 0.35) &&
+                        fabs(t_trk.track().dz(RecVtx.position()))<2.0 &&
+                        fabs(t_trk.track().dxy(RecVtx.position()) / t_trk.track().d0Error()) > 2.0 ) {
+                        double deta_pi1 = fabs(pi1->track().eta() - t_trk.track().eta()); 
+                        double dphi_pi1 = fabs(pi1->track().phi() - t_trk.track().phi());
+                        double dr_pi1 = TMath::Sqrt(TMath::Power(deta_pi1,2) + TMath::Power(dphi_pi1,2));
+                        if (dr_pi1 < minDR_pi1) {
+                            minDR_pi1 = dr_pi1;
+                            pi1_noPXB1 = t_trk;
+                        }
+                        double deta_proton = fabs(proton->track().eta() - t_trk.track().eta()); 
+                        double dphi_proton = fabs(proton->track().phi() - t_trk.track().phi());
+                        double dr_proton = TMath::Sqrt(TMath::Power(deta_proton,2) + TMath::Power(dphi_proton,2));
+                        if (dr_proton < minDR_proton && minDR_pi1 != dr_pi1) {
+                            minDR_proton = dr_proton;
+                            proton_noPXB1 = t_trk;
+                        }
+                    }
+                }
+            }
+            if (minDR_pi1 < 0.01 && minDR_proton < 0.01) {
+                //std::cout<<"min DR's: "<<minDR_pi1<<" : "<<minDR_proton<<std::endl;
+                vector<TransientTrack> tks_noPXB1;
+                tks_noPXB1.push_back(pi1_noPXB1);
+                tks_noPXB1.push_back(proton_noPXB1);
+                //KalmanVertexFitter kalman(true);
+                TransientVertex v_noPXB1 = kalman.vertex(tks_noPXB1);
+                if(v_noPXB1.isValid() && v_noPXB1.hasRefittedTracks()) {
+                    //double vtxProb =TMath::Prob( (Double_t) v.totalChiSquared(), (Int_t) v.degreesOfFreedom());
+                    //if (vtxProb < 0.05) continue;
+                    //TransientTrack pi1_f_noPXB1 = v_noPXB1.refittedTrack(*pi1_noPXB1);
+                    //TransientTrack proton_f_noPXB1 = v_noPXB1.refittedTrack(*proton_noPXB1);        
+                    math::XYZVector Lambda_position_noPXB1 = math::XYZVector(v_noPXB1.position().x(), v_noPXB1.position().y(), v_noPXB1.position().z() );
+
+                    math::XYZVector displacement_noPXB1 = Lambda_position_noPXB1 - PV_position;
+                    flightlength_noPXB1 = sqrt( displacement_noPXB1.perp2());
+                    //std::cout<<"flight length with PXB1: "<<flightlength<<" : and without PXB1: "<<flightlength_noPXB1<<std::endl;
+                    double deriv_x_noPXB1 = displacement_noPXB1.X() / fabs(flightlength_noPXB1);
+                    double deriv_y_noPXB1 = displacement_noPXB1.Y() / fabs(flightlength_noPXB1);
+                    flightlength_noPXB1_error = pow(deriv_x_noPXB1,2) * (pow(PVerrx,2) + v_noPXB1.positionError().cxx()) + pow(deriv_y_noPXB1,2) * (pow(PVerry,2) + v_noPXB1.positionError().cyy()) + 2*deriv_x_noPXB1*deriv_y_noPXB1 * (PVcxy + v_noPXB1.positionError().cyx());
+                    flightlength_noPXB1_error = sqrt(flightlength_noPXB1_error);
+                    //std::cout<<"change in relative flight length error: "<<sigma_L<< " : "<<sigma_L_noPXB1<<std::endl;
+                } 
+            }
+        }
+        
+
+        //}
+        //std::cout<<pi1_f.hitPattern().getHitPattern(reco::HitPattern::HitCategory::TRACK_HITS,0)<<std::endl;
+        //std::cout<<proton_f.hitPattern().getHitPattern(reco::HitPattern::HitCategory::TRACK_HITS,0)<<std::endl;
 
         // find point of closest approach between lambda momentum vector and vertex
         double x_p = ip4_Lambda.X(); 
@@ -515,6 +665,8 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
         cosAlpha3D.push_back(cosalpha3D);
         cosAlpha.push_back(cosalpha);
         flightLength.push_back(flightlength);
+        flightLength_noPXB1.push_back(flightlength_noPXB1);
+        flightLength_noPXB1_error.push_back(flightlength_noPXB1_error);
 
         LambdaVtxPosx.push_back(v.position().x());
         LambdaVtxPosy.push_back(v.position().y());
@@ -605,11 +757,16 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
 void LambdaAnalyzer::assignStableDaughters(const reco::Candidate* p, std::vector<int> & pids){
 
+  std::cout<<"called assignStableDaughters for: "<<p->pdgId()<<std::endl;
   for(size_t i=0;i<p->numberOfDaughters();i++){
-    if(p->daughter(i)->status()==1)
+    if(p->daughter(i)->status()==1) {
+      std::cout<<"adding stable daughter: "<<p->daughter(i)->pdgId()<<std::endl;
       pids.push_back(abs(p->daughter(i)->pdgId()));
-    else
+    }
+    else {
+     std::cout<<"recursive call"<<std::endl;
      assignStableDaughters(p->daughter(i),pids);
+    }
   }
   return;
 }
@@ -627,84 +784,27 @@ void LambdaAnalyzer::printGenInfo(const edm::Event& iEvent){
 
   for(size_t i=0;i<genParticles->size();i++){
 
-    const GenParticle & p = (*genParticles)[i];
+    const reco::GenParticle & p = (*genParticles)[i];
 
-    if(fabs(p.pdgId())==413){ //D*
-
-      for(size_t j=0;j<p.numberOfDaughters();j++){
-
-        const Candidate* dau = p.daughter(j);
-
-        if(fabs(dau->pdgId())==421){
-
-          std::vector<int> d0dauspids;
-          assignStableDaughters(dau,d0dauspids);
-          int K_num=0,pi_num=0,ndau=d0dauspids.size();  
-
-          while (!d0dauspids.empty()){
-            int pid = d0dauspids.back();
-            if(pid==321)
-              K_num++;
-            if(pid==211)
-              pi_num++;
-            d0dauspids.pop_back();
-          }
- 
-          if(K_num==1 && pi_num==1 && ndau==2){
-            dScandsKpi.push_back(i);
-          }
-          if(K_num==1 && pi_num==3 && ndau==4){
-            dScandsK3pi.push_back(i);
-   
-
-            // determining K3pi mode after we knwo it's K3pi
-            int K3pi_nr[] = {211,211,211,321};
-            int K_a1[]={321,20213};
-            int K1_pi[]={211,10323};
-            int Kstar0rho0[]={113,313};
-            int Kstar02pi[]={211,211,313};
-            int Kpirho0[]={113,211,321};
-
-            std::vector<int> d0daus;
-            for(size_t k=0;k<dau->numberOfDaughters();k++){
-              d0daus.push_back(fabs(dau->daughter(k)->pdgId()));
-            }
-
-            std::sort(d0daus.begin(),d0daus.end());
-            if( std::equal(d0daus.begin(),d0daus.end(),K3pi_nr) ) K3pi_MC_mode.push_back(1);
-            else if( std::equal(d0daus.begin(),d0daus.end(),K_a1) ) K3pi_MC_mode.push_back(2);
-            else if( std::equal(d0daus.begin(),d0daus.end(),K1_pi) ) K3pi_MC_mode.push_back(3);
-            else if( std::equal(d0daus.begin(),d0daus.end(),Kstar0rho0 ) ) K3pi_MC_mode.push_back(4);
-            else if( std::equal(d0daus.begin(),d0daus.end(),Kstar02pi ) ) K3pi_MC_mode.push_back(5);
-            else if( std::equal(d0daus.begin(),d0daus.end(),Kpirho0 ) ) K3pi_MC_mode.push_back(6);
-            else K3pi_MC_mode.push_back(0);
-
- 
-            for(size_t k=0;k<dau->numberOfDaughters();k++){
-              cout << dau->daughter(k)->pdgId() << " ";
-            }
-            cout << endl;
-      
-          }
-        }
-      }
+    if(p.pdgId()==3122){ //Lambda
+     
+      LambdaDPicands.push_back(i); 
     }
-  }
-  NKpiMC=dScandsKpi.size();
-  NK3piMC=dScandsK3pi.size();
 
+  }
 }
 
 void LambdaAnalyzer::initialize(){
 //clearing the vectors
   //analysis
   //ntracks.clear(); PVx.clear(); PVy.clear(); PVz.clear(); PVerrx.clear(); PVerry.clear(); PVerrz.clear();
-  dScandsKpi.clear();  dScandsK3pi.clear();  goodTracks.clear(); slowPiTracks.clear();
+  LambdaDPicands.clear();  dScandsK3pi.clear();  goodTracks.clear(); slowPiTracks.clear();
   //Kpi D* Lambda
   LambdaMass.clear();  DSMassKpi.clear();  LambdaVtxProb.clear(); LambdaVtxLSig.clear(); LambdaVtxLSig3D.clear();  LambdaPtKpi.clear();  DSPtKpi.clear();  LambdaVtxPosx.clear();
   LambdaVtxPosy.clear();  LambdaVtxPosz.clear();  Lambdaeta.clear();  Lambdaphi.clear();  LambdaVtxerrx.clear();  LambdaVtxerry.clear(); LamdaVertexCAx.clear(); LamdaVertexCAy.clear(); LamdaVertexCAz.clear();
   LambdaVtxerrz.clear();  LambdaVtxcxy.clear();   LambdaVtxcxz.clear();  LambdaVtxcyz.clear();  DSetaKpi.clear(); DSphiKpi.clear();
-  cosAlphaK3pi.clear(); cosAlpha.clear(); cosAlpha3D.clear(); cosAlpha3DK3pi.clear(); flightLengthK3pi.clear(); flightLength.clear();
+  cosAlphaK3pi.clear(); cosAlpha.clear(); cosAlpha3D.clear(); cosAlpha3DK3pi.clear(); flightLengthK3pi.clear(); flightLength.clear(); flightLength_noPXB1.clear(); flightLength_noPXB1_error.clear();
+  LambdaSharedHitLayer.clear(); LambdaSharedHitLadder.clear(); LambdaSharedHitModule.clear();
   //K3pi D* Lambda
   LambdaMassK3pi.clear(); DSMassK3pi.clear(); LambdaMassK3pi1.clear();  DSMassK3pi1.clear();  LambdaVtxProb3.clear(); LambdaVtx3LSig.clear(); LambdaVtx3LSig3D.clear(); LambdaPtK3pi.clear();  DSPtK3pi.clear();  LambdaVtxPosx3.clear();
   LambdaVtxPosy3.clear();  LambdaVtxPosz3.clear();  LambdaetaK3pi.clear();  LambdaphiK3pi.clear();  LambdaVtxerrx3.clear();  LambdaVtxerry3.clear(); 
@@ -722,7 +822,7 @@ void LambdaAnalyzer::initialize(){
   KpiTrkKphi.clear();  KpiTrkpiphi.clear();  KpiTrkSphi.clear();
   KpiDSDeltaR.clear(); KpiTrkScharge.clear();
   //MC
-  MCDsDeltaR.clear();MCDsDeltaR3.clear(),K3pi_MC_mode.clear();
+  MCLambdaDeltaR.clear();MCLambdaDeltaR3.clear(),K3pi_MC_mode.clear();
 
   //K3pi tracks
   K3piTrkKdxy.clear();  K3piTrk1pidxy.clear();  K3piTrk2pidxy.clear();  K3piTrk3pidxy.clear();  K3piTrkSdxy.clear(); K3piTrkSdxyErr.clear();
@@ -774,6 +874,11 @@ tree1->Branch("LamdaVertexCAz",&LamdaVertexCAz);
 tree1->Branch("cosAlpha",&cosAlpha);
 tree1->Branch("cosAlpha3D",&cosAlpha3D);
 tree1->Branch("flightLength", &flightLength);
+tree1->Branch("flightLength_noPXB1", &flightLength_noPXB1);
+tree1->Branch("flightLength_noPXB1_error", &flightLength_noPXB1_error);
+tree1->Branch("LambdaSharedHitLayer",&LambdaSharedHitLayer);
+tree1->Branch("LambdaSharedHitLadder",&LambdaSharedHitLadder);
+tree1->Branch("LambdaSharedHitModule",&LambdaSharedHitModule);
 
 
 //tracks
@@ -818,6 +923,7 @@ tree1->Branch("PionProtondz",&PionProtondz);
 //tree1->Branch("KpiTrkpipt",&KpiTrkpipt);
 //tree1->Branch("KpiTrkSpt",&KpiTrkSpt);
 tree1->Branch("LambdaPt",&LambdaPtKpi);
+tree1->Branch("MCLambdaDeltaR",&MCLambdaDeltaR);
 //tree1->Branch("DSPtKpi",&DSPtKpi);
 //tree1->Branch("KpiDSDeltaR",&KpiDSDeltaR);
 //tree1->Branch("KpiTrkKnhits",&KpiTrkKnhits);
@@ -842,7 +948,7 @@ tree1->Branch("LambdaPt",&LambdaPtKpi);
 //tree1->Branch("KpiTrkSphi",&KpiTrkSphi);
 //tree1->Branch("KpiTrkScharge",&KpiTrkScharge);
 //MC
-//tree1->Branch("MCDsDeltaR",&MCDsDeltaR);
+//tree1->Branch("MCLambdaDeltaR",&MCLambdaDeltaR);
 
 }
 
