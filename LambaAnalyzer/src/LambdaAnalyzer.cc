@@ -26,6 +26,14 @@
 #include "RecoVertex/VertexPrimitives/interface/TransientVertex.h"
 #include "RecoVertex/KalmanVertexFit/interface/KalmanVertexFitter.h"
 
+#include "MagneticField/Engine/interface/MagneticField.h"
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+#include "MagneticField/Records/interface/IdealMagneticFieldRecord.h" 
+#include "TrackingTools/Records/interface/TrackingComponentsRecord.h" 
+#include "TrackingTools/TrackFitters/interface/TrajectoryFitterRecord.h" 
+#include "TrackingTools/Records/interface/TransientRecHitRecord.h" 
+
 #include "DataFormats/Math/interface/LorentzVector.h"
 #include "DataFormats/Math/interface/Vector.h"
 
@@ -52,7 +60,15 @@
 
 #include "DataFormats/SiPixelDetId/interface/PXBDetId.h"
 
+#include "FWCore/Framework/interface/stream/EDProducer.h"
+#include "RecoTracker/TrackProducer/interface/KfTrackProducerBase.h"
+#include "RecoTracker/TrackProducer/interface/TrackProducerAlgorithm.h"
+
 class LambdaAnalyzer : public edm::EDAnalyzer {
+    using Base = AlgoProductTraits<reco::Track>;
+    //using TrackCollection = typename Base::TrackCollection;
+    using AlgoProductCollection = typename Base::AlgoProductCollection;
+    using TrackView = typename Base::TrackView; 
    public:
       explicit LambdaAnalyzer(const edm::ParameterSet&);
       ~LambdaAnalyzer();
@@ -65,6 +81,7 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       void loop(const edm::Event& iEvent, const edm::EventSetup&, const reco::Vertex& RecVtx);
       void assignStableDaughters(const reco::Candidate* p, std::vector<int> & pids);
       void initialize();
+//      void getFromEvt(edm::Event& theEvent,edm::Handle<Base::TrackCollection>& theTCollection); 
       // ----------member data ---------------------------
       bool doGen, doK3pi, doKpi;
       double m_pi, m_K, m_p;
@@ -75,7 +92,7 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       std::vector<reco::TransientTrack> t_tks;
       std::vector<reco::TransientTrack> t_tks_noPXB1;
       TTree *tree1;
-      
+      TrackProducerAlgorithm<reco::Track> theAlgo;      
 
       //ntuple variables
       int NKpiCand,NK3piCand,trigflag[160],NKpiMC,NK3piMC;
@@ -130,7 +147,9 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       edm::EDGetTokenT<reco::TrackCollection> TrackCollT_noPXB1_;
       edm::EDGetTokenT<reco::VertexCollection> VtxCollT_;
       edm::EDGetTokenT<reco::GenParticleCollection> GenCollT_;
-  
+      edm::EDGetTokenT<reco::BeamSpot> BSCollT_;
+      edm::EDGetTokenT<reco::TrackCollection> theTCCollection; 
+ 
       edm::Handle<reco::GenParticleCollection> genParticles;
   
       typedef edm::AssociationMap<edm::OneToManyWithQuality< reco::VertexCollection, reco::TrackCollection, int> > TrackVertexAssMap;
@@ -141,7 +160,8 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
 LambdaAnalyzer::LambdaAnalyzer(const edm::ParameterSet& iConfig):
    doGen(iConfig.getParameter<bool>("doGen")),
    doK3pi(iConfig.getParameter<bool>("doK3pi")),
-   doKpi(iConfig.getParameter<bool>("doKpi"))
+   doKpi(iConfig.getParameter<bool>("doKpi")),
+   theAlgo(iConfig)
 {
    //now do what ever initialization is needed
    edm::Service<TFileService> fs;
@@ -153,6 +173,8 @@ LambdaAnalyzer::LambdaAnalyzer(const edm::ParameterSet& iConfig):
    VtxCollT_ = consumes<reco::VertexCollection>(iConfig.getUntrackedParameter<edm::InputTag>("vertices"));
    GenCollT_ = consumes<reco::GenParticleCollection>(iConfig.getUntrackedParameter<edm::InputTag>("genParticles"));
    T2VCollT_ = consumes<TrackVertexAssMap>(iConfig.getUntrackedParameter<edm::InputTag>("T2V"));
+   BSCollT_ = consumes<reco::BeamSpot>(iConfig.getUntrackedParameter<edm::InputTag>("BeamSpot"));
+   theTCCollection = consumes<reco::TrackCollection>(iConfig.getUntrackedParameter<edm::InputTag>("trackCandidates"));
 
 }
 
@@ -232,9 +254,9 @@ void LambdaAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   BSerrz=vertexBeamSpot.z0Error();*/
 
 
-  Handle<TrackCollection> generalTracks;
+  Handle<reco::TrackCollection> generalTracks;
   iEvent.getByToken(TrackCollT_, generalTracks);
-  Handle<TrackCollection> generalTracks_noPXB1;
+  Handle<reco::TrackCollection> generalTracks_noPXB1;
   iEvent.getByToken(TrackCollT_noPXB1_, generalTracks_noPXB1);
   //iEvent.getByLabel("generalTracks",generalTracks);
 
@@ -651,6 +673,55 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
         double z_p = ip4_Lambda.Z();
         double scale_ca = (x_p*PVx + y_p*PVy + z_p*PVz )/(x_p*x_p + y_p*y_p + z_p*z_p);
 
+        
+        // an attempt to refit tracks by hand
+        edm::ESHandle<TrackerGeometry> theG;
+        edm::ESHandle<MagneticField> theMF;
+        edm::ESHandle<TrajectoryFitter> theFitter;
+        edm::ESHandle<Propagator> thePropagator;
+        edm::ESHandle<MeasurementTracker>  theMeasTk;
+        edm::ESHandle<TransientTrackingRecHitBuilder> theBuilder;
+        iSetup.get<TrackerDigiGeometryRecord>().get(theG);
+        //getFromES(iSetup,theG,theMF,theFitter,thePropagator,theMeasTk,theBuilder);
+        iSetup.get<IdealMagneticFieldRecord>().get(theMF); 
+        iSetup.get<TrajectoryFitter::Record>().get("KFFittingSmootherWithOutliersRejectionAndRK",theFitter);
+        iSetup.get<TrackingComponentsRecord>().get("RungeKuttaTrackerPropagator",thePropagator);
+        iSetup.get<CkfComponentsRecord>().get("",theMeasTk);
+        iSetup.get<TransientRecHitRecord>().get("WithAngleAndTemplate",theBuilder);
+
+        edm::Handle<reco::BeamSpot> recoBeamSpotHandle;
+        iEvent.getByToken(BSCollT_,recoBeamSpotHandle);
+        reco::BeamSpot bs = *recoBeamSpotHandle;
+
+        AlgoProductCollection algoResults;
+        //edm::Handle<edm::View<reco::Track>> theTCollection;
+        //AlgoProductTraits<reco::Track>::AlgoProductCollection algoResults;
+        //AlgoProductTraits<reco::Track>::AlgoProduct algoResults;
+        //edm::View<reco::Track> theTCollection;
+        //reco::Track t_test;
+       // Track(double chi2, double ndof, const Point & referencePoint,
+       //   const Vector & momentum, int charge, const CovarianceMatrix &,
+       //   TrackAlgorithm = undefAlgorithm, TrackQuality quality = undefQuality,
+//	  float t0 = 0, float beta = 0, 
+//	  float covt0t0 = -1., float covbetabeta = -1.);
+        //Handle<TrackCollection> test_generalTracks;
+        //iEvent.getByToken(TrackCollT_, test_generalTracks);
+       
+        edm::Handle<edm::View<reco::Track>>  theTCollection;
+        //edm::Handle<TrackCollection> theTCollection;
+        //edm::View<reco::Track> theTCollection;
+        //edm::Handle<TrackCandidateCollection> theTCollection;
+        //iEvent.getByToken(theTCCollection,theTCollection);
+        //ckfTrackCandidates
+        iEvent.getByLabel("generalTracks",theTCollection );
+
+        ///edm::Handle<edm::View<reco::Track>> theTCollection;
+        //getFromEvt(iEvent,theTCollection);
+ 
+        theAlgo.runWithTrack(theG.product(), theMF.product(), *theTCollection, 
+			     theFitter.product(), thePropagator.product(), 
+			     theBuilder.product(), bs, algoResults);
+
         LambdaVtxProb.push_back(vtxProb);
         LambdaVtxLSig.push_back(LSig);
         LambdaVtxLSig3D.push_back(LSig3D);
@@ -956,6 +1027,10 @@ tree1->Branch("MCLambdaDeltaR",&MCLambdaDeltaR);
 void 
 LambdaAnalyzer::endJob() {
 }
+
+//void LambdaAnalyzer::getFromEvt(edm::Event& theEvent,edm::Handle<TrackCollection>& theTCollection) {
+//    theEvent.getByLabel("generalTracks",theTCollection ); 
+//}
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(LambdaAnalyzer);
