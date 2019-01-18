@@ -148,7 +148,7 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       edm::EDGetTokenT<reco::VertexCollection> VtxCollT_;
       edm::EDGetTokenT<reco::GenParticleCollection> GenCollT_;
       edm::EDGetTokenT<reco::BeamSpot> BSCollT_;
-      edm::EDGetTokenT<reco::TrackCollection> theTCCollection; 
+      edm::EDGetTokenT<edm::View<reco::Track>> theTCCollection; 
  
       edm::Handle<reco::GenParticleCollection> genParticles;
   
@@ -174,7 +174,7 @@ LambdaAnalyzer::LambdaAnalyzer(const edm::ParameterSet& iConfig):
    GenCollT_ = consumes<reco::GenParticleCollection>(iConfig.getUntrackedParameter<edm::InputTag>("genParticles"));
    T2VCollT_ = consumes<TrackVertexAssMap>(iConfig.getUntrackedParameter<edm::InputTag>("T2V"));
    BSCollT_ = consumes<reco::BeamSpot>(iConfig.getUntrackedParameter<edm::InputTag>("BeamSpot"));
-   theTCCollection = consumes<reco::TrackCollection>(iConfig.getUntrackedParameter<edm::InputTag>("trackCandidates"));
+   theTCCollection = consumes<edm::View<reco::Track>>(iConfig.getUntrackedParameter<edm::InputTag>("trackCandidates"));
 
 }
 
@@ -711,16 +711,23 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
         //edm::Handle<TrackCollection> theTCollection;
         //edm::View<reco::Track> theTCollection;
         //edm::Handle<TrackCandidateCollection> theTCollection;
-        //iEvent.getByToken(theTCCollection,theTCollection);
+        iEvent.getByToken(theTCCollection,theTCollection);
         //ckfTrackCandidates
-        iEvent.getByLabel("generalTracks",theTCollection );
+        //iEvent.getByLabel("generalTracks",theTCollection );
 
         ///edm::Handle<edm::View<reco::Track>> theTCollection;
         //getFromEvt(iEvent,theTCollection);
  
+        edm::Handle<edm::View<reco::Track>>  theTCollection_skimmed;
+        // how to build a custom edm::Handle<edm::View<reco::Track>> to refit, i.e. just the
+        // p,pi tracks with layer 1 hits removed?
+
         theAlgo.runWithTrack(theG.product(), theMF.product(), *theTCollection, 
 			     theFitter.product(), thePropagator.product(), 
 			     theBuilder.product(), bs, algoResults);
+
+        std::cout<<"algoResults.size() = "<<algoResults.size()<<std::endl;
+        std::cout<<"t_tks.size() = "<<t_tks.size()<<std::endl;
 
         LambdaVtxProb.push_back(vtxProb);
         LambdaVtxLSig.push_back(LSig);
