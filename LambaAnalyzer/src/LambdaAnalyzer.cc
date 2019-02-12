@@ -678,42 +678,6 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
         double z_p = ip4_Lambda.Z();
         double scale_ca = (x_p*PVx + y_p*PVy + z_p*PVz )/(x_p*x_p + y_p*y_p + z_p*z_p);
 
-        /*
-        //look for matching TrackingParticles
-        double min_pion_dR = 99.;
-        double min_p_dR = 99.;
-        double pion_dR = 99.;
-        double p_dR = 99.;
-        int pionIndex=-1;
-        int pIndex=-1;
-        int lambdaIndex = -1;
-        for(TrackingParticleCollection::const_iterator iter = tPC->begin(); iter != tPC->end(); ++iter){
-           pion_dR = deltaR(ip4_pi1.Eta(),ip4_pi1.Phi(),iter->eta(),iter->phi());  
-           p_dR = deltaR(ip4_proton.Eta(),ip4_proton.Phi(),iter->eta(),iter->phi());   
-           int pID = iter->pdgId();
-           TrackingVertexRef sourceVtxRef = iter->parentVertex();
-           //look for pion
-           if(pion_dR<min_pion_dR && (pID==-211)){
-              //lambda should be only sourceTrack, but loop through to be safe
-              for(TrackingParticleRefVector::iterator sourceIter = sourceVtxRef->sourceTracks_begin(); sourceIter != sourceVtxRef->sourceTracks_end(); ++sourceIter){
-                 if((*sourceIter)->pdgId()==3122){
-                    lambdaIndex = std::distance(sourceVtxRef->sourceTracks_begin(), sourceIter);
-                    min_pion_dR = pion_dR;
-                    pionIndex = std::distance(tPC->begin(), iter);
-                 }
-              }
-           }//look for proton
-           else if(p_dR<min_p_dR && (pID==2212)){ 
-              for(TrackingParticleRefVector::iterator sourceIter = sourceVtxRef->sourceTracks_begin(); sourceIter != sourceVtxRef->sourceTracks_end(); ++sourceIter){
-                 if((*sourceIter)->pdgId()==3122){
-                    min_p_dR = p_dR;
-                    pIndex = std::distance(tPC->begin(), iter);
-                 }
-              }
-        
-           }
-        }*/
-      
         //Iterate over lambdas to find the best match to pion/proton tracks
         double min_dR = 99;
         double pion_dR = 99;
@@ -728,12 +692,11 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
         for(TrackingParticleCollection::const_iterator iter = tPC->begin(); iter != tPC->end(); ++iter){
            //is lambda?
            if(iter->pdgId()==3122){
-              TrackingVertexRef decayVtx = *(iter->decayVertices().end()-1);//some lambdas have multiple decay vertices, just look at the last one for pion/proton
+              TrackingVertexRef decayVtx = *(iter->decayVertices().end()-1);//some lambdas have multiple decay vertices, looking at just the last one seems to work
               decayTracks = decayVtx->daughterTracks();
               
               //check lambda decays to p,pi?
               if(decayTracks.size() >= 2){
-                 //std::cout << "pdgIDs: " << decayTracks.at(0)->pdgId() << " " << decayTracks.at(1)->pdgId() << std::endl;
                  if(decayTracks.at(0)->pdgId()==-211 && decayTracks.at(1)->pdgId()==2212){
                     genPion = decayTracks.at(0);
                     genProton = decayTracks.at(1);
@@ -754,21 +717,6 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
               }
            }
         }
-        std::cout <<"min_dR " <<  min_dR << std::endl;
-        //TrackingVertexRef genLambdaVtx = *(genLambda.decayVertices().end()-1);
-        //TrackingVertexRef LambdaDecayVtx = 
-        //if(min_dR<0.2) std::cout <<"Good Lambda!" << std::endl;
-
-        //TrackingVertexRef pionSourceVtxRef = tPC->at(pionIndex).parentVertex();
-        //TrackingVertexRef pSourceVtxRef = tPC->at(pIndex).parentVertex();
-        //TrackingParticleRef lambdaRef = pionSourceVtxRef->sourceTracks().at(lambdaIndex);
-        //dR cut
-        //if(min_pion_dR > .1 || min_p_dR > .1) continue;
-        //make sure pion and p come from same vertex
-        //bool foundMatch=false;
-        //if(pionSourceVtxRef==pSourceVtxRef) foundMatch=true;
-        //if(foundMatch) std::cout << "found lambda (original)" <<std::endl; 
-        //if(sqrt(pow(pSourceVtxRef->position().x() - pionSourceVtxRef->position().x(),2) +  pow(pSourceVtxRef->position().y() - pionSourceVtxRef->position().y(),2) + pow(pSourceVtxRef->position().z() - pionSourceVtxRef->position().z(),2)) < .000001){
          
         LambdaVtxProb.push_back(vtxProb);
         LambdaVtxLSig.push_back(LSig);
