@@ -52,6 +52,9 @@
 
 #include "DataFormats/SiPixelDetId/interface/PXBDetId.h"
 
+#include "SimDataFormats/TrackingAnalysis/interface/TrackingParticle.h"
+#include "SimDataFormats/TrackingAnalysis/interface/TrackingVertex.h"
+
 class LambdaAnalyzer : public edm::EDAnalyzer {
    public:
       explicit LambdaAnalyzer(const edm::ParameterSet&);
@@ -76,6 +79,9 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       std::vector<reco::TransientTrack> t_tks_noPXB1;
       TTree *tree1;
       
+      const std::vector<TrackingParticle> *tPC;
+      //std::vector<TrackingParticle> trkParticle;
+
 
       //ntuple variables
       int NKpiCand,NK3piCand,trigflag[160],NKpiMC,NK3piMC;
@@ -92,6 +98,10 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
 
       std::vector<int> LambdaSharedHitLayer,LambdaSharedHitLadder,LambdaSharedHitModule;
  
+      //Gen quantities
+      std::vector<double> GenLambdaVtxPosx, GenLambdaVtxPosy, GenLambdaVtxPosz, GenLambdaSourceVtxPosx, GenLambdaSourceVtxPosy, GenLambdaSourceVtxPosz,GenLambdaPt, GenLambdaP, GenLambdaPhi, GenLambdaEta, GenLambdaMass, GenLambdaMt, GenLambdaE, GenLambdaEt, GenLambdaPx, GenLambdaPy, GenLambdaPz, GenFlightLength, GenDeltaR;
+      std::vector<bool> GenVertexMatch; 
+      
       //primarty vtx vars
       double PVx,PVy,PVz,PVerrx,PVerry,PVerrz,PVcxy,PVcxz,PVcyz;
       double BSx,BSy,BSz,BSerrx,BSerry,BSerrz;
@@ -136,6 +146,11 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       typedef edm::AssociationMap<edm::OneToManyWithQuality< reco::VertexCollection, reco::TrackCollection, int> > TrackVertexAssMap;
       edm::Handle<TrackVertexAssMap> assomap;
       edm::EDGetTokenT<TrackVertexAssMap> T2VCollT_;
+      typedef std::vector<TrackingParticle> TrackingParticleCollection;
+      edm::EDGetTokenT<TrackingParticleCollection> TrackingParticleCollT_;
+      typedef std::vector<TrackingVertex> TrackingVertexCollection;
+      edm::EDGetTokenT<TrackingVertexCollection> TrackingVertexCollT_;
+
 };
 
 LambdaAnalyzer::LambdaAnalyzer(const edm::ParameterSet& iConfig):
@@ -153,6 +168,11 @@ LambdaAnalyzer::LambdaAnalyzer(const edm::ParameterSet& iConfig):
    VtxCollT_ = consumes<reco::VertexCollection>(iConfig.getUntrackedParameter<edm::InputTag>("vertices"));
    GenCollT_ = consumes<reco::GenParticleCollection>(iConfig.getUntrackedParameter<edm::InputTag>("genParticles"));
    T2VCollT_ = consumes<TrackVertexAssMap>(iConfig.getUntrackedParameter<edm::InputTag>("T2V"));
+    //MixCollT_ = consumes<edm::TrackingParticle>(iConfig.getUntrackedParameter<edm::InputTag>("mix"));
+
+   TrackingParticleCollT_ = consumes<TrackingParticleCollection>(iConfig.getParameter<edm::InputTag>("trackingParticles") );
+   TrackingVertexCollT_ = consumes<TrackingVertexCollection>(iConfig.getParameter<edm::InputTag>("trackingParticles") );
+
 
 }
 
@@ -238,7 +258,14 @@ void LambdaAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   iEvent.getByToken(TrackCollT_noPXB1_, generalTracks_noPXB1);
   //iEvent.getByLabel("generalTracks",generalTracks);
 
+  edm::Handle<TrackingParticleCollection> TruthTrackContainer ;
+  iEvent.getByToken( TrackingParticleCollT_, TruthTrackContainer );
+  //const TrackingParticleCollection *tPC = TruthTrackContainer.product();
 
+  tPC = TruthTrackContainer.product();
+  edm::Handle<TrackingVertexCollection> TruthVertexContainer ;
+  iEvent.getByToken( TrackingVertexCollT_, TruthVertexContainer );
+  const TrackingVertexCollection *tVC = TruthVertexContainer.product();
 
   edm::ESHandle<TransientTrackBuilder> theB;
   iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",theB);
@@ -651,6 +678,98 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
         double z_p = ip4_Lambda.Z();
         double scale_ca = (x_p*PVx + y_p*PVy + z_p*PVz )/(x_p*x_p + y_p*y_p + z_p*z_p);
 
+        /*
+        //look for matching TrackingParticles
+        double min_pion_dR = 99.;
+        double min_p_dR = 99.;
+        double pion_dR = 99.;
+        double p_dR = 99.;
+        int pionIndex=-1;
+        int pIndex=-1;
+        int lambdaIndex = -1;
+        for(TrackingParticleCollection::const_iterator iter = tPC->begin(); iter != tPC->end(); ++iter){
+           pion_dR = deltaR(ip4_pi1.Eta(),ip4_pi1.Phi(),iter->eta(),iter->phi());  
+           p_dR = deltaR(ip4_proton.Eta(),ip4_proton.Phi(),iter->eta(),iter->phi());   
+           int pID = iter->pdgId();
+           TrackingVertexRef sourceVtxRef = iter->parentVertex();
+           //look for pion
+           if(pion_dR<min_pion_dR && (pID==-211)){
+              //lambda should be only sourceTrack, but loop through to be safe
+              for(TrackingParticleRefVector::iterator sourceIter = sourceVtxRef->sourceTracks_begin(); sourceIter != sourceVtxRef->sourceTracks_end(); ++sourceIter){
+                 if((*sourceIter)->pdgId()==3122){
+                    lambdaIndex = std::distance(sourceVtxRef->sourceTracks_begin(), sourceIter);
+                    min_pion_dR = pion_dR;
+                    pionIndex = std::distance(tPC->begin(), iter);
+                 }
+              }
+           }//look for proton
+           else if(p_dR<min_p_dR && (pID==2212)){ 
+              for(TrackingParticleRefVector::iterator sourceIter = sourceVtxRef->sourceTracks_begin(); sourceIter != sourceVtxRef->sourceTracks_end(); ++sourceIter){
+                 if((*sourceIter)->pdgId()==3122){
+                    min_p_dR = p_dR;
+                    pIndex = std::distance(tPC->begin(), iter);
+                 }
+              }
+        
+           }
+        }*/
+      
+        //Iterate over lambdas to find the best match to pion/proton tracks
+        double min_dR = 99;
+        double pion_dR = 99;
+        double p_dR = 99;
+        
+        TrackingParticle genLambda;
+        TrackingVertexRef genLambdaVtx;
+        TrackingParticleRef genPion;
+        TrackingParticleRef genProton;
+        TrackingParticleRefVector decayTracks;
+
+        for(TrackingParticleCollection::const_iterator iter = tPC->begin(); iter != tPC->end(); ++iter){
+           //is lambda?
+           if(iter->pdgId()==3122){
+              TrackingVertexRef decayVtx = *(iter->decayVertices().end()-1);//some lambdas have multiple decay vertices, just look at the last one for pion/proton
+              decayTracks = decayVtx->daughterTracks();
+              
+              //check lambda decays to p,pi?
+              if(decayTracks.size() >= 2){
+                 //std::cout << "pdgIDs: " << decayTracks.at(0)->pdgId() << " " << decayTracks.at(1)->pdgId() << std::endl;
+                 if(decayTracks.at(0)->pdgId()==-211 && decayTracks.at(1)->pdgId()==2212){
+                    genPion = decayTracks.at(0);
+                    genProton = decayTracks.at(1);
+                 }
+                 else if(decayTracks.at(0)->pdgId()==2212 && decayTracks.at(1)->pdgId()==-211){
+                    genPion = decayTracks.at(1);
+                    genProton = decayTracks.at(0);
+                 }
+                 else continue;
+                 //Now we have the pion/proton tracks
+                 pion_dR = deltaR(ip4_pi1.Eta(),ip4_pi1.Phi(),genPion->eta(),genPion->phi());  
+                 p_dR = deltaR(ip4_proton.Eta(),ip4_proton.Phi(),genProton->eta(),genProton->phi());   
+                 if(pion_dR + p_dR < min_dR){
+                    min_dR = pion_dR + p_dR;
+                    genLambda = tPC->at(std::distance(tPC->begin(), iter));
+                    genLambdaVtx = decayVtx;
+                 }
+              }
+           }
+        }
+        std::cout <<"min_dR " <<  min_dR << std::endl;
+        //TrackingVertexRef genLambdaVtx = *(genLambda.decayVertices().end()-1);
+        //TrackingVertexRef LambdaDecayVtx = 
+        //if(min_dR<0.2) std::cout <<"Good Lambda!" << std::endl;
+
+        //TrackingVertexRef pionSourceVtxRef = tPC->at(pionIndex).parentVertex();
+        //TrackingVertexRef pSourceVtxRef = tPC->at(pIndex).parentVertex();
+        //TrackingParticleRef lambdaRef = pionSourceVtxRef->sourceTracks().at(lambdaIndex);
+        //dR cut
+        //if(min_pion_dR > .1 || min_p_dR > .1) continue;
+        //make sure pion and p come from same vertex
+        //bool foundMatch=false;
+        //if(pionSourceVtxRef==pSourceVtxRef) foundMatch=true;
+        //if(foundMatch) std::cout << "found lambda (original)" <<std::endl; 
+        //if(sqrt(pow(pSourceVtxRef->position().x() - pionSourceVtxRef->position().x(),2) +  pow(pSourceVtxRef->position().y() - pionSourceVtxRef->position().y(),2) + pow(pSourceVtxRef->position().z() - pionSourceVtxRef->position().z(),2)) < .000001){
+         
         LambdaVtxProb.push_back(vtxProb);
         LambdaVtxLSig.push_back(LSig);
         LambdaVtxLSig3D.push_back(LSig3D);
@@ -740,10 +859,30 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
 //        KpiTrkScharge.push_back(trkS->charge());
 
+        GenLambdaVtxPosx.push_back(genLambdaVtx->position().x());
+        GenLambdaVtxPosy.push_back(genLambdaVtx->position().y());
+        GenLambdaVtxPosz.push_back(genLambdaVtx->position().z());
+        GenLambdaSourceVtxPosx.push_back(genLambda.vx());
+        GenLambdaSourceVtxPosy.push_back(genLambda.vy());
+        GenLambdaSourceVtxPosz.push_back(genLambda.vz());
+        GenLambdaPt.push_back(genLambda.pt());
+        GenLambdaP.push_back(genLambda.p());
+        GenLambdaPhi.push_back(genLambda.phi());
+        GenLambdaEta.push_back(genLambda.eta());
+        GenLambdaMass.push_back(genLambda.mass());
+        GenLambdaMt.push_back(genLambda.mt());
+        GenLambdaE.push_back(genLambda.energy());
+        GenLambdaEt.push_back(genLambda.et());
+        GenLambdaPx.push_back(genLambda.px());
+        GenLambdaPy.push_back(genLambda.py());
+        GenLambdaPz.push_back(genLambda.pz());
+        GenDeltaR.push_back(min_dR);
+        //genLambdaVtx->position is the lambda->pion,proton vertex.  genLambda.v() is the vertex the lambda is created at
+        GenFlightLength.push_back(sqrt(pow(genLambdaVtx->position().x()-genLambda.vx(),2) + pow(genLambdaVtx->position().y() - genLambda.vy(),2) + pow(genLambdaVtx->position().z() - genLambda.vz(),2)));
         NKpiCand++;
 
         if(NKpiCand>999) break;
-      //}
+      //
       if(NKpiCand>999) break;
     } 
     if(NKpiCand>999) break;
@@ -834,6 +973,14 @@ void LambdaAnalyzer::initialize(){
   K3piTrkKeta.clear();  K3piTrk1pieta.clear();  K3piTrk2pieta.clear();  K3piTrk3pieta.clear();  K3piTrkSeta.clear();
   K3piTrkKphi.clear();  K3piTrk1piphi.clear();  K3piTrk2piphi.clear();  K3piTrk3piphi.clear();  K3piTrkSphi.clear();
   K3piDSDeltaR.clear(); K3piTrkScharge.clear();
+  
+  //Gen quantities
+  GenLambdaVtxPosx.clear(); GenLambdaVtxPosy.clear(); GenLambdaVtxPosz.clear();
+  GenLambdaSourceVtxPosx.clear(); GenLambdaSourceVtxPosy.clear(); GenLambdaSourceVtxPosz.clear();
+  GenLambdaMass.clear(); GenLambdaPt.clear(); GenLambdaPhi.clear(); GenLambdaEta.clear(); GenLambdaMt.clear(); GenLambdaE.clear(); GenLambdaEt.clear(); GenLambdaPx.clear(); GenLambdaPy.clear(); GenLambdaPz.clear(); GenFlightLength.clear(); GenDeltaR.clear(); GenVertexMatch.clear();
+
+
+
   //MC ids
   //static variables
   for(int i=0;i<160;i++)
@@ -949,6 +1096,30 @@ tree1->Branch("MCLambdaDeltaR",&MCLambdaDeltaR);
 //tree1->Branch("KpiTrkScharge",&KpiTrkScharge);
 //MC
 //tree1->Branch("MCLambdaDeltaR",&MCLambdaDeltaR);
+
+//Gen quantities
+tree1->Branch("GenLambdaVtxPosx",&GenLambdaVtxPosx);
+tree1->Branch("GenLambdaVtxPosy",&GenLambdaVtxPosy);
+tree1->Branch("GenLambdaVtxPosz",&GenLambdaVtxPosz);
+tree1->Branch("GenLambdaSourceVtxPosx",&GenLambdaSourceVtxPosx);
+tree1->Branch("GenLambdaSourceVtxPosy",&GenLambdaSourceVtxPosy);
+tree1->Branch("GenLambdaSourceVtxPosz",&GenLambdaSourceVtxPosz);
+tree1->Branch("GenLambdaPt",&GenLambdaPt);
+tree1->Branch("GenLambdaP",&GenLambdaP);
+tree1->Branch("GenLambdaPhi",&GenLambdaPhi);
+tree1->Branch("GenLambdaEta",&GenLambdaEta);
+tree1->Branch("GenLambdaMass",&GenLambdaMass);
+tree1->Branch("GenLambdaMt",&GenLambdaMt);
+tree1->Branch("GenLambdaE",&GenLambdaE);
+tree1->Branch("GenLambdaPx",&GenLambdaPx);
+tree1->Branch("GenLambdaPy",&GenLambdaPy);
+tree1->Branch("GenLambdaPz",&GenLambdaPz);
+tree1->Branch("GenFlightLength",&GenFlightLength);
+tree1->Branch("GenDeltaR",&GenDeltaR);
+tree1->Branch("GenVertexMatch",&GenVertexMatch);
+
+
+
 
 }
 

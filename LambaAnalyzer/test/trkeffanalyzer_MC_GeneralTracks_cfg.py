@@ -32,14 +32,19 @@ process.GlobalTag.globaltag = '101X_upgrade2018_realistic_v7'
 
 #filelist = FileUtils.loadListFromFile("inputlist.list")
 #filelist = FileUtils.loadListFromFile("onefile.list")
+process.maxEvents = cms.untracked.PSet( 
+    input = cms.untracked.int32(-1)
+)
 
-process.source = cms.Source('PoolSource',
-#fileNames = cms.untracked.vstring(*filelist),
-fileNames = cms.untracked.vstring(#'/store/data/Run2018C/ZeroBias/RAW-RECO/LogError-PromptReco-v1/000/319/347/00000/86EFC8CD-DE84-E811-8983-FA163EC985ED.root'
-#'/store/data/Run2018C/ZeroBias/RAW-RECO/LogError-PromptReco-v1/000/319/347/00000/86EFC8CD-DE84-E811-8983-FA163EC985ED.root'
-#'/store/mc/RunIIAutumn18DRPremix/QCD_Pt-15to7000_TuneCP5_Flat2018_13TeV_pythia8/GEN-SIM-RECO/102X_upgrade2018_realistic_v15_ext1-v2/60000/7E8A8DF4-FBBE-EF4F-97DB-0B1C8EE1A059.root'
-'/store/mc/RunIIAutumn18DRPremix/SingleNeutrino/GEN-SIM-RECO/forRECO_102X_upgrade2018_realistic_v15_ext1-v1/100000/18847E99-339C-634B-8F2B-C5CB4E0869CE.root'
-),
+process.source = cms.Source("PoolSource",
+                #GEN-SIM-RECO file
+                fileNames=cms.untracked.vstring(
+                '/store/relval/CMSSW_10_2_3/RelValQCD_FlatPt_15_3000HS_13/GEN-SIM-RECO/PU25ns_102X_upgrade2018_realistic_v11-v1/20000/FAC4072D-E9C0-7D47-B58C-7C9C8580E39A.root', 
+                ),
+                #GEN-SIM-DIGI-RAW parent file
+                secondaryFileNames=cms.untracked.vstring(
+                '/store/relval/CMSSW_10_2_3/RelValQCD_FlatPt_15_3000HS_13/GEN-SIM-DIGI-RAW/PU25ns_102X_upgrade2018_realistic_v11-v1/20000/E25311AE-F39E-924D-AAF9-623DDBBE1B8C.root ',
+                ),   
 #skipEvents = cms.untracked.uint32(100000)
 inputCommands=cms.untracked.vstring(
                   'keep *',
@@ -160,6 +165,8 @@ process.analyzer = cms.EDAnalyzer('LambdaAnalyzer',
     vertices = cms.untracked.InputTag("offlinePrimaryVertices"),
     genParticles = cms.untracked.InputTag("genParticles"),
     T2V = cms.untracked.InputTag("Tracks2Vertex"),
+    trackingParticles = cms.InputTag("mix","MergedTrackTruth"),
+    trackingVertices = cms.InputTag("mix","MergedTrackTruth"),
 )
 
 process.TFileService = cms.Service("TFileService",
