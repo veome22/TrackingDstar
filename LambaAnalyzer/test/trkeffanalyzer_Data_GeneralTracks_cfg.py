@@ -159,6 +159,7 @@ process.analyzer = cms.EDAnalyzer('LambdaAnalyzer',
     vertices = cms.untracked.InputTag("offlinePrimaryVertices"),
     genParticles = cms.untracked.InputTag("genParticles"),
     T2V = cms.untracked.InputTag("Tracks2Vertex"),
+	trackingParticles = cms.InputTag("mix","MergedTrackTruth"),
 )
 
 process.TFileService = cms.Service("TFileService",

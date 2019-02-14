@@ -258,15 +258,17 @@ void LambdaAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   iEvent.getByToken(TrackCollT_noPXB1_, generalTracks_noPXB1);
   //iEvent.getByLabel("generalTracks",generalTracks);
 
-  edm::Handle<TrackingParticleCollection> TruthTrackContainer ;
-  iEvent.getByToken( TrackingParticleCollT_, TruthTrackContainer );
-  //const TrackingParticleCollection *tPC = TruthTrackContainer.product();
 
-  tPC = TruthTrackContainer.product();
-  edm::Handle<TrackingVertexCollection> TruthVertexContainer ;
-  iEvent.getByToken( TrackingVertexCollT_, TruthVertexContainer );
-  const TrackingVertexCollection *tVC = TruthVertexContainer.product();
-
+  if(doGen){
+  	edm::Handle<TrackingParticleCollection> TruthTrackContainer ;
+  	iEvent.getByToken( TrackingParticleCollT_, TruthTrackContainer );
+  	//const TrackingParticleCollection *tPC = TruthTrackContainer.product();
+  	
+	tPC = TruthTrackContainer.product();
+  	edm::Handle<TrackingVertexCollection> TruthVertexContainer ;
+  	iEvent.getByToken( TrackingVertexCollT_, TruthVertexContainer );
+  	const TrackingVertexCollection *tVC = TruthVertexContainer.product();
+  }
   edm::ESHandle<TransientTrackBuilder> theB;
   iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",theB);
   ///////t_tks = (*theB).build(generalTracks_noPXB1);
@@ -678,49 +680,50 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
         double z_p = ip4_Lambda.Z();
         double scale_ca = (x_p*PVx + y_p*PVy + z_p*PVz )/(x_p*x_p + y_p*y_p + z_p*z_p);
 
-        //Iterate over lambdas to find the best match to pion/proton tracks
-        double min_dR = 99;
-        double pion_dR = 99;
-        double p_dR = 99;
-        
+        //Iterate over gen lambdas to find the best match to pion/proton tracks
+		bool genLambdaFound = false;
         TrackingParticle genLambda;
         TrackingVertexRef genLambdaVtx;
         TrackingParticleRef genPion;
         TrackingParticleRef genProton;
         TrackingParticleRefVector decayTracks;
-		bool genLambdaFound = false;
-		if(tPC->size() > 0){
-        	for(TrackingParticleCollection::const_iterator iter = tPC->begin(); iter != tPC->end(); ++iter){
-        	   //is lambda?
-        	   if(iter->pdgId()==3122){
-        	      TrackingVertexRef decayVtx = *(iter->decayVertices().end()-1);//some lambdas have multiple decay vertices, looking at just the last one seems to work
-        	      decayTracks = decayVtx->daughterTracks();
-        	      
-        	      //check lambda decays to p,pi?
-        	      if(decayTracks.size() >= 2){
-        	         if(decayTracks.at(0)->pdgId()==-211 && decayTracks.at(1)->pdgId()==2212){
-        	            genPion = decayTracks.at(0);
-        	            genProton = decayTracks.at(1);
-        	         }
-        	         else if(decayTracks.at(0)->pdgId()==2212 && decayTracks.at(1)->pdgId()==-211){
-        	            genPion = decayTracks.at(1);
-        	            genProton = decayTracks.at(0);
-        	         }
-        	         else continue;
-        	         //Now we have the pion/proton tracks
-        	         pion_dR = deltaR(ip4_pi1.Eta(),ip4_pi1.Phi(),genPion->eta(),genPion->phi());  
-        	         p_dR = deltaR(ip4_proton.Eta(),ip4_proton.Phi(),genProton->eta(),genProton->phi());   
-        	         if(pion_dR + p_dR < min_dR){
-        	            min_dR = pion_dR + p_dR;
-        	            genLambda = tPC->at(std::distance(tPC->begin(), iter));
-        	            genLambdaVtx = decayVtx;
-						genLambdaFound = true;
-        	         }
-        	      }
-        	   }
-        	}
+		double min_dR = 99;
+        double pion_dR = 99;
+        double p_dR = 99;
+        
+		if(doGen){
+			if(tPC->size() > 0){
+        		for(TrackingParticleCollection::const_iterator iter = tPC->begin(); iter != tPC->end(); ++iter){
+        		   //is lambda?
+        		   if(iter->pdgId()==3122){
+        		      TrackingVertexRef decayVtx = *(iter->decayVertices().end()-1);//some lambdas have multiple decay vertices, looking at just the last one seems to work
+        		      decayTracks = decayVtx->daughterTracks();
+        		      
+        		      //check lambda decays to p,pi?
+        		      if(decayTracks.size() >= 2){
+        		         if(decayTracks.at(0)->pdgId()==-211 && decayTracks.at(1)->pdgId()==2212){
+        		            genPion = decayTracks.at(0);
+        		            genProton = decayTracks.at(1);
+        		         }
+        		         else if(decayTracks.at(0)->pdgId()==2212 && decayTracks.at(1)->pdgId()==-211){
+        		            genPion = decayTracks.at(1);
+        		            genProton = decayTracks.at(0);
+        		         }
+        		         else continue;
+        		         //Now we have the pion/proton tracks
+        		         pion_dR = deltaR(ip4_pi1.Eta(),ip4_pi1.Phi(),genPion->eta(),genPion->phi());  
+        		         p_dR = deltaR(ip4_proton.Eta(),ip4_proton.Phi(),genProton->eta(),genProton->phi());   
+        		         if(pion_dR + p_dR < min_dR){
+        		            min_dR = pion_dR + p_dR;
+        		            genLambda = tPC->at(std::distance(tPC->begin(), iter));
+        		            genLambdaVtx = decayVtx;
+							genLambdaFound = true;
+        		         }
+        		      }
+        		   }
+        		}
+			}
 		}
-
         LambdaVtxProb.push_back(vtxProb);
         LambdaVtxLSig.push_back(LSig);
         LambdaVtxLSig3D.push_back(LSig3D);
