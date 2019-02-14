@@ -688,36 +688,39 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
         TrackingParticleRef genPion;
         TrackingParticleRef genProton;
         TrackingParticleRefVector decayTracks;
+		bool genLambdaFound = false;
+		if(tPC->size() > 0){
+        	for(TrackingParticleCollection::const_iterator iter = tPC->begin(); iter != tPC->end(); ++iter){
+        	   //is lambda?
+        	   if(iter->pdgId()==3122){
+        	      TrackingVertexRef decayVtx = *(iter->decayVertices().end()-1);//some lambdas have multiple decay vertices, looking at just the last one seems to work
+        	      decayTracks = decayVtx->daughterTracks();
+        	      
+        	      //check lambda decays to p,pi?
+        	      if(decayTracks.size() >= 2){
+        	         if(decayTracks.at(0)->pdgId()==-211 && decayTracks.at(1)->pdgId()==2212){
+        	            genPion = decayTracks.at(0);
+        	            genProton = decayTracks.at(1);
+        	         }
+        	         else if(decayTracks.at(0)->pdgId()==2212 && decayTracks.at(1)->pdgId()==-211){
+        	            genPion = decayTracks.at(1);
+        	            genProton = decayTracks.at(0);
+        	         }
+        	         else continue;
+        	         //Now we have the pion/proton tracks
+        	         pion_dR = deltaR(ip4_pi1.Eta(),ip4_pi1.Phi(),genPion->eta(),genPion->phi());  
+        	         p_dR = deltaR(ip4_proton.Eta(),ip4_proton.Phi(),genProton->eta(),genProton->phi());   
+        	         if(pion_dR + p_dR < min_dR){
+        	            min_dR = pion_dR + p_dR;
+        	            genLambda = tPC->at(std::distance(tPC->begin(), iter));
+        	            genLambdaVtx = decayVtx;
+						genLambdaFound = true;
+        	         }
+        	      }
+        	   }
+        	}
+		}
 
-        for(TrackingParticleCollection::const_iterator iter = tPC->begin(); iter != tPC->end(); ++iter){
-           //is lambda?
-           if(iter->pdgId()==3122){
-              TrackingVertexRef decayVtx = *(iter->decayVertices().end()-1);//some lambdas have multiple decay vertices, looking at just the last one seems to work
-              decayTracks = decayVtx->daughterTracks();
-              
-              //check lambda decays to p,pi?
-              if(decayTracks.size() >= 2){
-                 if(decayTracks.at(0)->pdgId()==-211 && decayTracks.at(1)->pdgId()==2212){
-                    genPion = decayTracks.at(0);
-                    genProton = decayTracks.at(1);
-                 }
-                 else if(decayTracks.at(0)->pdgId()==2212 && decayTracks.at(1)->pdgId()==-211){
-                    genPion = decayTracks.at(1);
-                    genProton = decayTracks.at(0);
-                 }
-                 else continue;
-                 //Now we have the pion/proton tracks
-                 pion_dR = deltaR(ip4_pi1.Eta(),ip4_pi1.Phi(),genPion->eta(),genPion->phi());  
-                 p_dR = deltaR(ip4_proton.Eta(),ip4_proton.Phi(),genProton->eta(),genProton->phi());   
-                 if(pion_dR + p_dR < min_dR){
-                    min_dR = pion_dR + p_dR;
-                    genLambda = tPC->at(std::distance(tPC->begin(), iter));
-                    genLambdaVtx = decayVtx;
-                 }
-              }
-           }
-        }
-         
         LambdaVtxProb.push_back(vtxProb);
         LambdaVtxLSig.push_back(LSig);
         LambdaVtxLSig3D.push_back(LSig3D);
@@ -806,28 +809,29 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
 //        KpiTrkSphi.push_back(trkS->track().phi());
 
 //        KpiTrkScharge.push_back(trkS->charge());
-
-        GenLambdaVtxPosx.push_back(genLambdaVtx->position().x());
-        GenLambdaVtxPosy.push_back(genLambdaVtx->position().y());
-        GenLambdaVtxPosz.push_back(genLambdaVtx->position().z());
-        GenLambdaSourceVtxPosx.push_back(genLambda.vx());
-        GenLambdaSourceVtxPosy.push_back(genLambda.vy());
-        GenLambdaSourceVtxPosz.push_back(genLambda.vz());
-        GenLambdaPt.push_back(genLambda.pt());
-        GenLambdaP.push_back(genLambda.p());
-        GenLambdaPhi.push_back(genLambda.phi());
-        GenLambdaEta.push_back(genLambda.eta());
-        GenLambdaMass.push_back(genLambda.mass());
-        GenLambdaMt.push_back(genLambda.mt());
-        GenLambdaE.push_back(genLambda.energy());
-        GenLambdaEt.push_back(genLambda.et());
-        GenLambdaPx.push_back(genLambda.px());
-        GenLambdaPy.push_back(genLambda.py());
-        GenLambdaPz.push_back(genLambda.pz());
-        GenDeltaR.push_back(min_dR);
-        //genLambdaVtx->position is the lambda->pion,proton vertex.  genLambda.v() is the vertex the lambda is created at
-        GenFlightLength.push_back(sqrt(pow(genLambdaVtx->position().x()-genLambda.vx(),2) + pow(genLambdaVtx->position().y() - genLambda.vy(),2) + pow(genLambdaVtx->position().z() - genLambda.vz(),2)));
-        NKpiCand++;
+		if(genLambdaFound){
+        	GenLambdaVtxPosx.push_back(genLambdaVtx->position().x());
+        	GenLambdaVtxPosy.push_back(genLambdaVtx->position().y());
+        	GenLambdaVtxPosz.push_back(genLambdaVtx->position().z());
+        	GenLambdaSourceVtxPosx.push_back(genLambda.vx());
+        	GenLambdaSourceVtxPosy.push_back(genLambda.vy());
+        	GenLambdaSourceVtxPosz.push_back(genLambda.vz());
+        	GenLambdaPt.push_back(genLambda.pt());
+        	GenLambdaP.push_back(genLambda.p());
+        	GenLambdaPhi.push_back(genLambda.phi());
+        	GenLambdaEta.push_back(genLambda.eta());
+        	GenLambdaMass.push_back(genLambda.mass());
+        	GenLambdaMt.push_back(genLambda.mt());
+        	GenLambdaE.push_back(genLambda.energy());
+        	GenLambdaEt.push_back(genLambda.et());
+        	GenLambdaPx.push_back(genLambda.px());
+        	GenLambdaPy.push_back(genLambda.py());
+        	GenLambdaPz.push_back(genLambda.pz());
+        	GenDeltaR.push_back(min_dR);
+        	//genLambdaVtx->position is the lambda->pion,proton vertex.  genLambda.v() is the vertex the lambda is created at
+        	GenFlightLength.push_back(sqrt(pow(genLambdaVtx->position().x()-genLambda.vx(),2) + pow(genLambdaVtx->position().y() - genLambda.vy(),2) + pow(genLambdaVtx->position().z() - genLambda.vz(),2)));
+		}        
+		NKpiCand++;
 
         if(NKpiCand>999) break;
       //
