@@ -26,6 +26,14 @@
 #include "RecoVertex/VertexPrimitives/interface/TransientVertex.h"
 #include "RecoVertex/KalmanVertexFit/interface/KalmanVertexFitter.h"
 
+#include "MagneticField/Engine/interface/MagneticField.h"
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+#include "MagneticField/Records/interface/IdealMagneticFieldRecord.h" 
+#include "TrackingTools/Records/interface/TrackingComponentsRecord.h" 
+#include "TrackingTools/TrackFitters/interface/TrajectoryFitterRecord.h" 
+#include "TrackingTools/Records/interface/TransientRecHitRecord.h" 
+
 #include "DataFormats/Math/interface/LorentzVector.h"
 #include "DataFormats/Math/interface/Vector.h"
 
@@ -52,10 +60,17 @@
 
 #include "DataFormats/SiPixelDetId/interface/PXBDetId.h"
 
+#include "FWCore/Framework/interface/stream/EDProducer.h"
+#include "RecoTracker/TrackProducer/interface/KfTrackProducerBase.h"
+#include "RecoTracker/TrackProducer/interface/TrackProducerAlgorithm.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticle.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingVertex.h"
 
 class LambdaAnalyzer : public edm::EDAnalyzer {
+    using Base = AlgoProductTraits<reco::Track>;
+    //using TrackCollection = typename Base::TrackCollection;
+    using AlgoProductCollection = typename Base::AlgoProductCollection;
+    using TrackView = typename Base::TrackView; 
    public:
       explicit LambdaAnalyzer(const edm::ParameterSet&);
       ~LambdaAnalyzer();
@@ -68,6 +83,8 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       void loop(const edm::Event& iEvent, const edm::EventSetup&, const reco::Vertex& RecVtx);
       void assignStableDaughters(const reco::Candidate* p, std::vector<int> & pids);
       void initialize();
+      int nSharedPixelLayerHits(reco::TransientTrack *track1, reco::TransientTrack *track2);
+//      void getFromEvt(edm::Event& theEvent,edm::Handle<Base::TrackCollection>& theTCollection); 
       // ----------member data ---------------------------
       bool doGen, doK3pi, doKpi;
       double m_pi, m_K, m_p;
@@ -78,10 +95,10 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       std::vector<reco::TransientTrack> t_tks;
       std::vector<reco::TransientTrack> t_tks_noPXB1;
       TTree *tree1;
+      TrackProducerAlgorithm<reco::Track> theAlgo;      
       
       const std::vector<TrackingParticle> *tPC;
       //std::vector<TrackingParticle> trkParticle;
-
 
       //ntuple variables
       int NKpiCand,NK3piCand,trigflag[160],NKpiMC,NK3piMC;
@@ -96,7 +113,9 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       std::vector<double> LambdaVtxPosx3,LambdaVtxPosy3,LambdaVtxPosz3,LambdaVtxerrx3,LambdaVtxerry3,LambdaVtxerrz3,LambdaVtx3cxy,LambdaVtx3cxz,LambdaVtx3cyz,LambdaetaK3pi,LambdaphiK3pi;
       std::vector<double> DSetaK3pi,DSphiK3pi,LambdaMassK3proton,DSMassK3proton;
 
-      std::vector<int> LambdaSharedHitLayer,LambdaSharedHitLadder,LambdaSharedHitModule;
+      std::vector<int> LambdaSharedHitLayer,LambdaSharedHitLadder,LambdaSharedHitModule,LambdaSharedHitPixelHits_x,LambdaSharedHitPixelHits_y,LambdaSharedHitPixelHits_adc;
+      std::vector<int> ProtonPixelHit_x,ProtonPixelHit_y,ProtonPixelHit_adc,PionPixelHit_x,PionPixelHit_y,PionPixelHit_adc;
+      int PionPixelHitLayer,ProtonPixelHitLayer;
  
       //Gen quantities
       std::vector<double> GenLambdaVtxPosx, GenLambdaVtxPosy, GenLambdaVtxPosz, GenLambdaSourceVtxPosx, GenLambdaSourceVtxPosy, GenLambdaSourceVtxPosz,GenLambdaPt, GenLambdaP, GenLambdaPhi, GenLambdaEta, GenLambdaMass, GenLambdaMt, GenLambdaE, GenLambdaEt, GenLambdaPx, GenLambdaPy, GenLambdaPz, GenFlightLength, GenDeltaR;
@@ -140,7 +159,9 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       edm::EDGetTokenT<reco::TrackCollection> TrackCollT_noPXB1_;
       edm::EDGetTokenT<reco::VertexCollection> VtxCollT_;
       edm::EDGetTokenT<reco::GenParticleCollection> GenCollT_;
-  
+      edm::EDGetTokenT<reco::BeamSpot> BSCollT_;
+      edm::EDGetTokenT<edm::View<reco::Track>> theTCCollection; 
+ 
       edm::Handle<reco::GenParticleCollection> genParticles;
   
       typedef edm::AssociationMap<edm::OneToManyWithQuality< reco::VertexCollection, reco::TrackCollection, int> > TrackVertexAssMap;
@@ -156,7 +177,8 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
 LambdaAnalyzer::LambdaAnalyzer(const edm::ParameterSet& iConfig):
    doGen(iConfig.getParameter<bool>("doGen")),
    doK3pi(iConfig.getParameter<bool>("doK3pi")),
-   doKpi(iConfig.getParameter<bool>("doKpi"))
+   doKpi(iConfig.getParameter<bool>("doKpi")),
+   theAlgo(iConfig)
 {
    //now do what ever initialization is needed
    edm::Service<TFileService> fs;
@@ -168,6 +190,8 @@ LambdaAnalyzer::LambdaAnalyzer(const edm::ParameterSet& iConfig):
    VtxCollT_ = consumes<reco::VertexCollection>(iConfig.getUntrackedParameter<edm::InputTag>("vertices"));
    GenCollT_ = consumes<reco::GenParticleCollection>(iConfig.getUntrackedParameter<edm::InputTag>("genParticles"));
    T2VCollT_ = consumes<TrackVertexAssMap>(iConfig.getUntrackedParameter<edm::InputTag>("T2V"));
+   BSCollT_ = consumes<reco::BeamSpot>(iConfig.getUntrackedParameter<edm::InputTag>("BeamSpot"));
+   theTCCollection = consumes<edm::View<reco::Track>>(iConfig.getUntrackedParameter<edm::InputTag>("trackCandidates"));
     //MixCollT_ = consumes<edm::TrackingParticle>(iConfig.getUntrackedParameter<edm::InputTag>("mix"));
 
    TrackingParticleCollT_ = consumes<TrackingParticleCollection>(iConfig.getParameter<edm::InputTag>("trackingParticles") );
@@ -252,9 +276,9 @@ void LambdaAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   BSerrz=vertexBeamSpot.z0Error();*/
 
 
-  Handle<TrackCollection> generalTracks;
+  Handle<reco::TrackCollection> generalTracks;
   iEvent.getByToken(TrackCollT_, generalTracks);
-  Handle<TrackCollection> generalTracks_noPXB1;
+  Handle<reco::TrackCollection> generalTracks_noPXB1;
   iEvent.getByToken(TrackCollT_noPXB1_, generalTracks_noPXB1);
   //iEvent.getByLabel("generalTracks",generalTracks);
 
@@ -569,19 +593,85 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
 //            }
 //        }
 //        std::cout<<"nSharedPBHits = "<<nSharedPBHits<<std::endl;
+
+
         trackingRecHit_iterator hb_pi1 = pi1->recHitsBegin();
         trackingRecHit_iterator hb_proton = proton->recHitsBegin();
         TrackingRecHit const * h1[4] = { (*hb_pi1), (*(hb_pi1+1)), (*(hb_pi1+2)), (*(hb_pi1+3))  };
         TrackingRecHit const * h2[4] = { (*hb_proton), (*(hb_proton+1)), (*(hb_proton+2)), (*(hb_proton+3)) };
+        const SiPixelRecHit* pixelhit_p = dynamic_cast<const SiPixelRecHit*>(h2[0]);
+        if(pixelhit_p!=nullptr && h2[0]->isValid() && LambdaMass.size()==0) {
+            // only fill for the first row in the event since we can't have a vector of vectors
+            std::vector<SiPixelCluster::Pixel> pixels_p(pixelhit_p->cluster()->pixels());
+        //    std::cout<<"pixels.size() = "<<pixels.size()<<std::endl;
+        //    std::cout<<"pixelhit->clusterProbability(0) = "<<pixelhit->clusterProbability(0)<<std::endl;
+        //    std::cout<<"pixelhit->clusterProbability(1) = "<<pixelhit->clusterProbability(1)<<std::endl;
+        //    std::cout<<"pixelhit->hasFilledProb() = "<<std::endl;
+            for (unsigned int k=0; k<pixels_p.size(); k++) {
+                SiPixelCluster::Pixel pixel_p = pixels_p[k];
+                ProtonPixelHit_x.push_back(pixel_p.x);
+                ProtonPixelHit_y.push_back(pixel_p.y);
+                ProtonPixelHit_adc.push_back(pixel_p.adc);
+            }
+            PXBDetId pxb_id_p = h2[0]->geographicalId();
+            ProtonPixelHitLayer = pxb_id_p.layer();
+            
+        }
+        else {
+                ProtonPixelHit_x.push_back(-99);
+                ProtonPixelHit_y.push_back(-99);
+                ProtonPixelHit_adc.push_back(-99);
+                ProtonPixelHitLayer = -1;
+        }
+        const SiPixelRecHit* pixelhit_pi = dynamic_cast<const SiPixelRecHit*>(h1[0]);
+        if(pixelhit_pi!=nullptr && h1[0]->isValid() && LambdaMass.size()==0) {
+            // only fill for the first row in the event since we can't have a vector of vectors
+            std::vector<SiPixelCluster::Pixel> pixels_pi(pixelhit_pi->cluster()->pixels());
+        //    std::cout<<"pixels.size() = "<<pixels.size()<<std::endl;
+        //    std::cout<<"pixelhit->clusterProbability(0) = "<<pixelhit->clusterProbability(0)<<std::endl;
+        //    std::cout<<"pixelhit->clusterProbability(1) = "<<pixelhit->clusterProbability(1)<<std::endl;
+        //    std::cout<<"pixelhit->hasFilledProb() = "<<std::endl;
+            for (unsigned int k=0; k<pixels_pi.size(); k++) {
+                SiPixelCluster::Pixel pixel_pi = pixels_pi[k];
+                PionPixelHit_x.push_back(pixel_pi.x);
+                PionPixelHit_y.push_back(pixel_pi.y);
+                PionPixelHit_adc.push_back(pixel_pi.adc);
+            }
+            PXBDetId pxb_id_pi = h1[0]->geographicalId();
+            PionPixelHitLayer = pxb_id_pi.layer();
+            
+        }
+        else {
+                PionPixelHit_x.push_back(-99);
+                PionPixelHit_y.push_back(-99);
+                PionPixelHit_adc.push_back(-99);
+                PionPixelHitLayer = -1;
+        }
         //std::cout<<"new lambda pairing"<<std::endl;
         bool foundSharedHit = false;
-        bool foundSharedHitLayer0 = true;
+        //bool foundSharedHitLayer0 = false;
         for (int k1=0; k1<4; k1++) {
             if (!h1[k1]->isValid()) continue;
             for (int k2=0; k2<4; k2++) {
                 if (!h2[k2]->isValid()) continue;
                 bool shared = h1[k1]->sharesInput(h2[k2],TrackingRecHit::some);
                 if (shared) {
+                    const SiPixelRecHit* pixelhit = dynamic_cast<const SiPixelRecHit*>(h1[k1]);
+                    //pixelhit->cluster()->pixels();
+                    if(pixelhit!=nullptr) {
+                        std::vector<SiPixelCluster::Pixel> pixels(pixelhit->cluster()->pixels());
+                        if (LambdaSharedHitLayer.size() == 0) {
+                            // can't have a vector of vectors so I don't have a better way to do this now then only deal with the first
+                            // Lambda if there are more than one for this vertex
+                            //std::cout<<"pixels.size() = "<<pixels.size()<<std::endl;
+                            for (unsigned int k=0; k<pixels.size(); k++) {
+                                SiPixelCluster::Pixel pixel = pixels[k];
+                                LambdaSharedHitPixelHits_x.push_back(pixel.x);
+                                LambdaSharedHitPixelHits_y.push_back(pixel.y);
+                                LambdaSharedHitPixelHits_adc.push_back(pixel.adc);
+                            }
+                        }
+                    }
                     //std::cout<<"k1, k2 = "<<k1<<" : "<<k2<<std::endl;
                     //std::cout<<"h1[k1], h2[k2] = "<<h1[k1]<<" : "<<h2[k2]<<std::endl;
                     //std::cout<<h1[k1]->geographicalId()<<std::endl;
@@ -593,9 +683,13 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
                     LambdaSharedHitLadder.push_back(pxb_id.ladder());
                     LambdaSharedHitModule.push_back(pxb_id.module());
                     foundSharedHit = true;
-                    if (pxb_id.layer() == 0) {
-                        foundSharedHitLayer0 = true;
-                    }
+                    //if (pxb_id.layer() == 0) {
+                    //    foundSharedHitLayer0 = true;
+                    //}
+                    //if (pxb_id.layer() == 0 && flightlength > 6.) {
+                    //    // shared hit at layer 0 but clearly coming from layer 2
+                    //    std::cout<<"found outlier shared hit at layer 0!"<<std::endl;
+                    //} 
                     break; // only consider the innermost shared hit
                     //std::cout<<int(h1[k1]->geographicalId())<<std::endl;
                     //std::cout<<h1[k1]->det().subDetector().<<std::endl;
@@ -613,61 +707,95 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
         double flightlength_noPXB1 = -99.;
         double flightlength_noPXB1_error = -99.;
         // try to rebuild Lambda candidate using the corresponding proton/pion tracks with hits at layer 0 removed
-        if (foundSharedHitLayer0) {
-            double minDR_pi1 = 999.;
-            double minDR_proton = 999.;
-            TransientTrack pi1_noPXB1; 
-            TransientTrack proton_noPXB1; 
-            for (size_t j=0;j<t_tks_noPXB1.size();j++) {
-                TransientTrack t_trk = t_tks_noPXB1.at(j);
-         
-                if( fabs(t_trk.track().eta())<2.4 && 
-                        t_trk.track().pt() > 0.25){
-                    if( (t_trk.track().numberOfValidHits() >= 6) && (t_trk.track().pt() > 0.35) &&
-                        fabs(t_trk.track().dz(RecVtx.position()))<2.0 &&
-                        fabs(t_trk.track().dxy(RecVtx.position()) / t_trk.track().d0Error()) > 2.0 ) {
-                        double deta_pi1 = fabs(pi1->track().eta() - t_trk.track().eta()); 
-                        double dphi_pi1 = fabs(pi1->track().phi() - t_trk.track().phi());
-                        double dr_pi1 = TMath::Sqrt(TMath::Power(deta_pi1,2) + TMath::Power(dphi_pi1,2));
-                        if (dr_pi1 < minDR_pi1) {
-                            minDR_pi1 = dr_pi1;
-                            pi1_noPXB1 = t_trk;
-                        }
-                        double deta_proton = fabs(proton->track().eta() - t_trk.track().eta()); 
-                        double dphi_proton = fabs(proton->track().phi() - t_trk.track().phi());
-                        double dr_proton = TMath::Sqrt(TMath::Power(deta_proton,2) + TMath::Power(dphi_proton,2));
-                        if (dr_proton < minDR_proton && minDR_pi1 != dr_pi1) {
-                            minDR_proton = dr_proton;
-                            proton_noPXB1 = t_trk;
-                        }
+        //if (foundSharedHitLayer0) {
+        double minDR_pi1 = 999.;
+        double minDR_proton = 999.;
+        TransientTrack pi1_noPXB1; 
+        TransientTrack proton_noPXB1; 
+        //std::cout<<"starting new loop"<<std::endl;
+        for (size_t j=0;j<t_tks_noPXB1.size();j++) {
+            TransientTrack t_trk = t_tks_noPXB1.at(j);
+     
+            if( fabs(t_trk.track().eta())<2.4 && 
+                    t_trk.track().pt() > 0.25){
+                if( (t_trk.track().numberOfValidHits() >= 6) && (t_trk.track().pt() > 0.35) &&
+                    fabs(t_trk.track().dz(RecVtx.position()))<2.0 &&
+                    fabs(t_trk.track().dxy(RecVtx.position()) / t_trk.track().d0Error()) > 2.0 ) {
+                    double deta_pi1 = fabs(pi1->track().eta() - t_trk.track().eta()); 
+                    double dphi_pi1 = fabs(pi1->track().phi() - t_trk.track().phi());
+                    double dr_pi1 = TMath::Sqrt(TMath::Power(deta_pi1,2) + TMath::Power(dphi_pi1,2));
+                    if (dr_pi1 < minDR_pi1) {
+                        minDR_pi1 = dr_pi1;
+                        pi1_noPXB1 = t_trk;
                     }
+                    double deta_proton = fabs(proton->track().eta() - t_trk.track().eta()); 
+                    double dphi_proton = fabs(proton->track().phi() - t_trk.track().phi());
+                    double dr_proton = TMath::Sqrt(TMath::Power(deta_proton,2) + TMath::Power(dphi_proton,2));
+                    if (dr_proton < minDR_proton && minDR_pi1 != dr_pi1) {
+                        minDR_proton = dr_proton;
+                        proton_noPXB1 = t_trk;
+                    }
+                    int nSharedHits = nSharedPixelLayerHits(pi1,&t_trk);
+                    //std::cout<<"going to run a sanity check on the no-PXB1 track"<<std::endl;
+                    const reco::HitPattern &p = t_trk.hitPattern();
+                    for (int i = 0; i < p.numberOfAllHits(HitPattern::TRACK_HITS); i++) {
+                        uint32_t hit = p.getHitPattern(HitPattern::TRACK_HITS, i);
+                         // if the hit is valid and in pixel barrel, print out the layer
+                                 if (p.validHitFilter(hit) && p.pixelBarrelHitFilter(hit)){
+                                     //std::cout << "valid hit found in pixel barrel layer " 
+                                     //     << p.getLayer(hit) 
+                                      //    << std::endl;
+                                 }
+                    }
+                    //std::cout<<"and now for the normal track..."<<std::endl;
+                     const reco::HitPattern &p2 = pi1->hitPattern();
+                    for (int i = 0; i < p2.numberOfAllHits(HitPattern::TRACK_HITS); i++) {
+                        uint32_t hit = p2.getHitPattern(HitPattern::TRACK_HITS, i);
+                         // if the hit is valid and in pixel barrel, print out the layer
+                                 if (p2.validHitFilter(hit) && p2.pixelBarrelHitFilter(hit)){
+                                     //std::cout << "valid hit found in pixel barrel layer " 
+                                     //     << p2.getLayer(hit) 
+                                     //     << std::endl;
+                                 }
+                    }
+                    //std::cout<<"nSharedHits = "<<nSharedHits<<std::endl;
+                    //std::cout<<"dr_pi1 = "<<dr_pi1<<std::endl;
+                    //if (nSharedHits > 0) {
+                    //    std::cout<<"PVOrder = "<<PVOrder<<std::endl;
+                    //    std::cout<<"flight length = "<<flightlength<<std::endl;
+                    //    std::cout<<"nSharedHits = "<<nSharedHits<<std::endl;
+                    //    std::cout<<"dr_pi1 = "<<dr_pi1<<std::endl;
+                    //    std::cout<<pi1->track().pt()<<" : "<<pi1->track().eta()<<" : "<<pi1->track().phi()<<std::endl;
+                    //    std::cout<<t_trk.track().pt()<<" : "<<t_trk.track().eta()<<" : "<<t_trk.track().phi()<<std::endl;
+                   // }
                 }
             }
-            if (minDR_pi1 < 0.01 && minDR_proton < 0.01) {
-                //std::cout<<"min DR's: "<<minDR_pi1<<" : "<<minDR_proton<<std::endl;
-                vector<TransientTrack> tks_noPXB1;
-                tks_noPXB1.push_back(pi1_noPXB1);
-                tks_noPXB1.push_back(proton_noPXB1);
-                //KalmanVertexFitter kalman(true);
-                TransientVertex v_noPXB1 = kalman.vertex(tks_noPXB1);
-                if(v_noPXB1.isValid() && v_noPXB1.hasRefittedTracks()) {
-                    //double vtxProb =TMath::Prob( (Double_t) v.totalChiSquared(), (Int_t) v.degreesOfFreedom());
-                    //if (vtxProb < 0.05) continue;
-                    //TransientTrack pi1_f_noPXB1 = v_noPXB1.refittedTrack(*pi1_noPXB1);
-                    //TransientTrack proton_f_noPXB1 = v_noPXB1.refittedTrack(*proton_noPXB1);        
-                    math::XYZVector Lambda_position_noPXB1 = math::XYZVector(v_noPXB1.position().x(), v_noPXB1.position().y(), v_noPXB1.position().z() );
-
-                    math::XYZVector displacement_noPXB1 = Lambda_position_noPXB1 - PV_position;
-                    flightlength_noPXB1 = sqrt( displacement_noPXB1.perp2());
-                    //std::cout<<"flight length with PXB1: "<<flightlength<<" : and without PXB1: "<<flightlength_noPXB1<<std::endl;
-                    double deriv_x_noPXB1 = displacement_noPXB1.X() / fabs(flightlength_noPXB1);
-                    double deriv_y_noPXB1 = displacement_noPXB1.Y() / fabs(flightlength_noPXB1);
-                    flightlength_noPXB1_error = pow(deriv_x_noPXB1,2) * (pow(PVerrx,2) + v_noPXB1.positionError().cxx()) + pow(deriv_y_noPXB1,2) * (pow(PVerry,2) + v_noPXB1.positionError().cyy()) + 2*deriv_x_noPXB1*deriv_y_noPXB1 * (PVcxy + v_noPXB1.positionError().cyx());
-                    flightlength_noPXB1_error = sqrt(flightlength_noPXB1_error);
-                    //std::cout<<"change in relative flight length error: "<<sigma_L<< " : "<<sigma_L_noPXB1<<std::endl;
-                } 
-            }
         }
+        if (minDR_pi1 < 0.01 && minDR_proton < 0.01) {
+            //std::cout<<"min DR's: "<<minDR_pi1<<" : "<<minDR_proton<<std::endl;
+            vector<TransientTrack> tks_noPXB1;
+            tks_noPXB1.push_back(pi1_noPXB1);
+            tks_noPXB1.push_back(proton_noPXB1);
+            //KalmanVertexFitter kalman(true);
+            TransientVertex v_noPXB1 = kalman.vertex(tks_noPXB1);
+            if(v_noPXB1.isValid() && v_noPXB1.hasRefittedTracks()) {
+                //double vtxProb =TMath::Prob( (Double_t) v.totalChiSquared(), (Int_t) v.degreesOfFreedom());
+                //if (vtxProb < 0.05) continue;
+                //TransientTrack pi1_f_noPXB1 = v_noPXB1.refittedTrack(*pi1_noPXB1);
+                //TransientTrack proton_f_noPXB1 = v_noPXB1.refittedTrack(*proton_noPXB1);        
+                math::XYZVector Lambda_position_noPXB1 = math::XYZVector(v_noPXB1.position().x(), v_noPXB1.position().y(), v_noPXB1.position().z() );
+
+                math::XYZVector displacement_noPXB1 = Lambda_position_noPXB1 - PV_position;
+                flightlength_noPXB1 = sqrt( displacement_noPXB1.perp2());
+                //std::cout<<"flight length with PXB1: "<<flightlength<<" : and without PXB1: "<<flightlength_noPXB1<<std::endl;
+                double deriv_x_noPXB1 = displacement_noPXB1.X() / fabs(flightlength_noPXB1);
+                double deriv_y_noPXB1 = displacement_noPXB1.Y() / fabs(flightlength_noPXB1);
+                flightlength_noPXB1_error = pow(deriv_x_noPXB1,2) * (pow(PVerrx,2) + v_noPXB1.positionError().cxx()) + pow(deriv_y_noPXB1,2) * (pow(PVerry,2) + v_noPXB1.positionError().cyy()) + 2*deriv_x_noPXB1*deriv_y_noPXB1 * (PVcxy + v_noPXB1.positionError().cyx());
+                flightlength_noPXB1_error = sqrt(flightlength_noPXB1_error);
+                //std::cout<<"change in relative flight length error: "<<sigma_L<< " : "<<sigma_L_noPXB1<<std::endl;
+            } 
+        }
+        //}
         
 
         //}
@@ -680,16 +808,76 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
         double z_p = ip4_Lambda.Z();
         double scale_ca = (x_p*PVx + y_p*PVy + z_p*PVz )/(x_p*x_p + y_p*y_p + z_p*z_p);
 
-        //Iterate over gen lambdas to find the best match to pion/proton tracks
+        // an attempt to refit tracks by hand
+        //edm::ESHandle<TrackerGeometry> theG;
+        //edm::ESHandle<MagneticField> theMF;
+        //edm::ESHandle<TrajectoryFitter> theFitter;
+        //edm::ESHandle<Propagator> thePropagator;
+        //edm::ESHandle<MeasurementTracker>  theMeasTk;
+        //edm::ESHandle<TransientTrackingRecHitBuilder> theBuilder;
+        //iSetup.get<TrackerDigiGeometryRecord>().get(theG);
+        ////getFromES(iSetup,theG,theMF,theFitter,thePropagator,theMeasTk,theBuilder);
+        //iSetup.get<IdealMagneticFieldRecord>().get(theMF); 
+        //iSetup.get<TrajectoryFitter::Record>().get("KFFittingSmootherWithOutliersRejectionAndRK",theFitter);
+        //iSetup.get<TrackingComponentsRecord>().get("RungeKuttaTrackerPropagator",thePropagator);
+        //iSetup.get<CkfComponentsRecord>().get("",theMeasTk);
+        //iSetup.get<TransientRecHitRecord>().get("WithAngleAndTemplate",theBuilder);
+
+        //edm::Handle<reco::BeamSpot> recoBeamSpotHandle;
+        //iEvent.getByToken(BSCollT_,recoBeamSpotHandle);
+        //reco::BeamSpot bs = *recoBeamSpotHandle;
+
+        //AlgoProductCollection algoResults;
+        //edm::Handle<edm::View<reco::Track>> theTCollection;
+        //AlgoProductTraits<reco::Track>::AlgoProductCollection algoResults;
+        //AlgoProductTraits<reco::Track>::AlgoProduct algoResults;
+        //edm::View<reco::Track> theTCollection;
+        //reco::Track t_test;
+       // Track(double chi2, double ndof, const Point & referencePoint,
+       //   const Vector & momentum, int charge, const CovarianceMatrix &,
+       //   TrackAlgorithm = undefAlgorithm, TrackQuality quality = undefQuality,
+//	  float t0 = 0, float beta = 0, 
+//	  float covt0t0 = -1., float covbetabeta = -1.);
+        //Handle<TrackCollection> test_generalTracks;
+        //iEvent.getByToken(TrackCollT_, test_generalTracks);
+       
+        //edm::Handle<edm::View<reco::Track>>  theTCollection;
+        //edm::Handle<TrackCollection> theTCollection;
+        //edm::View<reco::Track> theTCollection;
+        //edm::Handle<TrackCandidateCollection> theTCollection;
+        //iEvent.getByToken(theTCCollection,theTCollection);
+        //ckfTrackCandidates
+        //iEvent.getByLabel("generalTracks",theTCollection );
+
+        ///edm::Handle<edm::View<reco::Track>> theTCollection;
+        //getFromEvt(iEvent,theTCollection);
+ 
+        //edm::Handle<edm::View<reco::Track>>  theTCollection_skimmed;
+        //std::cout<<"theTCollection->size() = "<<theTCollection->size()<<std::endl;
+        //std::cout<<"theTCollection->at(0) = "<<theTCollection->at(0)<<std::endl;
+        //reco::Track test_trk = theTCollection->at(0);
+        //std::cout<<test_trk.pt()<<std::endl; 
+        
+        // how to build a custom edm::Handle<edm::View<reco::Track>> to refit, i.e. just the
+        // p,pi tracks with layer 1 hits removed?
+
+        //theAlgo.runWithTrack(theG.product(), theMF.product(), *theTCollection, 
+	//		     theFitter.product(), thePropagator.product(), 
+	//		     theBuilder.product(), bs, algoResults);
+
+        //std::cout<<"algoResults.size() = "<<algoResults.size()<<std::endl;
+        //std::cout<<"t_tks.size() = "<<t_tks.size()<<std::endl;
+        
+        //Iterate over lambdas to find the best match to pion/proton tracks
+        double min_dR = 99;
+        double pion_dR = 99;
+        double p_dR = 99;
 		bool genLambdaFound = false;
         TrackingParticle genLambda;
         TrackingVertexRef genLambdaVtx;
         TrackingParticleRef genPion;
         TrackingParticleRef genProton;
         TrackingParticleRefVector decayTracks;
-		double min_dR = 99;
-        double pion_dR = 99;
-        double p_dR = 99;
         
 		if(doGen){
 			if(tPC->size() > 0){
@@ -898,7 +1086,8 @@ void LambdaAnalyzer::initialize(){
   LambdaVtxPosy.clear();  LambdaVtxPosz.clear();  Lambdaeta.clear();  Lambdaphi.clear();  LambdaVtxerrx.clear();  LambdaVtxerry.clear(); LamdaVertexCAx.clear(); LamdaVertexCAy.clear(); LamdaVertexCAz.clear();
   LambdaVtxerrz.clear();  LambdaVtxcxy.clear();   LambdaVtxcxz.clear();  LambdaVtxcyz.clear();  DSetaKpi.clear(); DSphiKpi.clear();
   cosAlphaK3pi.clear(); cosAlpha.clear(); cosAlpha3D.clear(); cosAlpha3DK3pi.clear(); flightLengthK3pi.clear(); flightLength.clear(); flightLength_noPXB1.clear(); flightLength_noPXB1_error.clear();
-  LambdaSharedHitLayer.clear(); LambdaSharedHitLadder.clear(); LambdaSharedHitModule.clear();
+  LambdaSharedHitLayer.clear(); LambdaSharedHitLadder.clear(); LambdaSharedHitModule.clear(); LambdaSharedHitPixelHits_x.clear(); LambdaSharedHitPixelHits_y.clear(); LambdaSharedHitPixelHits_adc.clear();
+  ProtonPixelHit_x.clear(); ProtonPixelHit_y.clear(); ProtonPixelHit_adc.clear(); PionPixelHit_x.clear(); PionPixelHit_y.clear(); PionPixelHit_adc.clear(); 
   //K3pi D* Lambda
   LambdaMassK3pi.clear(); DSMassK3pi.clear(); LambdaMassK3pi1.clear();  DSMassK3pi1.clear();  LambdaVtxProb3.clear(); LambdaVtx3LSig.clear(); LambdaVtx3LSig3D.clear(); LambdaPtK3pi.clear();  DSPtK3pi.clear();  LambdaVtxPosx3.clear();
   LambdaVtxPosy3.clear();  LambdaVtxPosz3.clear();  LambdaetaK3pi.clear();  LambdaphiK3pi.clear();  LambdaVtxerrx3.clear();  LambdaVtxerry3.clear(); 
@@ -981,7 +1170,17 @@ tree1->Branch("flightLength_noPXB1_error", &flightLength_noPXB1_error);
 tree1->Branch("LambdaSharedHitLayer",&LambdaSharedHitLayer);
 tree1->Branch("LambdaSharedHitLadder",&LambdaSharedHitLadder);
 tree1->Branch("LambdaSharedHitModule",&LambdaSharedHitModule);
-
+tree1->Branch("LambdaSharedHitPixelHits_x",&LambdaSharedHitPixelHits_x);
+tree1->Branch("LambdaSharedHitPixelHits_y",&LambdaSharedHitPixelHits_y);
+tree1->Branch("LambdaSharedHitPixelHits_adc",&LambdaSharedHitPixelHits_adc);
+tree1->Branch("PionPixelHit_x",&PionPixelHit_x);
+tree1->Branch("PionPixelHit_y",&PionPixelHit_y);
+tree1->Branch("PionPixelHit_adc",&PionPixelHit_adc);
+tree1->Branch("ProtonPixelHit_x",&ProtonPixelHit_x);
+tree1->Branch("ProtonPixelHit_y",&ProtonPixelHit_y);
+tree1->Branch("ProtonPixelHit_adc",&ProtonPixelHit_adc);
+tree1->Branch("PionPixelHitLayer",&PionPixelHitLayer);
+tree1->Branch("ProtonPixelHitLayer",&ProtonPixelHitLayer);
 
 //tracks
 tree1->Branch("ntracks",&ntracks,"ntracks/I");
@@ -1082,6 +1281,47 @@ tree1->Branch("GenVertexMatch",&GenVertexMatch);
 void 
 LambdaAnalyzer::endJob() {
 }
+
+
+int LambdaAnalyzer::nSharedPixelLayerHits(reco::TransientTrack *track1, reco::TransientTrack *track2) {
+    //std::cout<<"called nSharedPixelLayerHits"<<std::endl;
+    int nShared = 0;
+    trackingRecHit_iterator hb_t1 = track1->recHitsBegin();
+    trackingRecHit_iterator hb_t2 = track2->recHitsBegin();
+    TrackingRecHit const * h1[7] = { (*hb_t1), (*(hb_t1+1)), (*(hb_t1+2)), (*(hb_t1+3)),  (*(hb_t1+4)),  (*(hb_t1+5)),  (*(hb_t1+6)),   };
+    TrackingRecHit const * h2[7] = { (*hb_t2), (*(hb_t2+1)), (*(hb_t2+2)), (*(hb_t2+3)),  (*(hb_t2+4)),  (*(hb_t2+5)),  (*(hb_t2+6)),   };
+    for (int k1=0; k1<7; k1++) {
+        if (!h1[k1]->isValid()) continue;
+        //std::cout<<"track2 # recHits = "<<track2->recHitsSize()<<std::endl;
+        for (int k2=0; k2<7; k2++) {
+            if (!h2[k2]->isValid()) continue;
+            //if (k1==0) {
+            //PXBDetId tmp = h2[k2]->geographicalId();
+            //if (tmp.subdetId()== 1) {
+            //std::cout<<"k2 = "<<k2<<std::endl;
+            //std::cout<<tmp.det()<<std::endl;
+            //std::cout<<tmp.subdetId()<<std::endl;
+            //std::cout<<"track 2 valid hit at layer: "<<tmp.layer()<< " : "<<tmp.ladder()<<" : "<<tmp.module()<<std::endl;}
+            //if (k2==6) {std::cout<<"done"<<std::endl;}
+            //}
+            bool shared = h1[k1]->sharesInput(h2[k2],TrackingRecHit::some);
+            if (shared) {
+                nShared += 1;
+            }
+        }
+    }
+    //if (nShared>=3) {
+    //    std::cout<<"nShared >= 3"<<std::endl;
+    //    if (h2[0]->isValid()) {
+    //        PXBDetId pxb_id = h2[0]->geographicalId();
+    //        std::cout<<"layer = "<<pxb_id.layer()<<std::endl;
+     //   }
+    //}
+    return nShared;   
+}
+//void LambdaAnalyzer::getFromEvt(edm::Event& theEvent,edm::Handle<TrackCollection>& theTCollection) {
+//    theEvent.getByLabel("generalTracks",theTCollection ); 
+//}
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(LambdaAnalyzer);

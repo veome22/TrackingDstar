@@ -26,7 +26,8 @@ process.load("Configuration.StandardSequences.Reconstruction_cff")
 #process.GlobalTag.globaltag = 'GR_P_V56::All'
 process.GlobalTag.globaltag = '101X_dataRun2_Prompt_v11'
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
+#process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000) )
 #process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000) )
 
 #filelist = FileUtils.loadListFromFile("inputlist.list")
@@ -160,6 +161,10 @@ process.analyzer = cms.EDAnalyzer('LambdaAnalyzer',
     genParticles = cms.untracked.InputTag("genParticles"),
     T2V = cms.untracked.InputTag("Tracks2Vertex"),
 	trackingParticles = cms.InputTag("mix","MergedTrackTruth"),
+    AlgorithmName = cms.string('undefAlgorithm'),
+    BeamSpot = cms.untracked.InputTag('offlineBeamSpot'),
+    trackCandidates = cms.untracked.InputTag('generalTracks'),
+    #trackCandidates = cms.untracked.InputTag('ckfTrackCandidates'),
 )
 
 process.TFileService = cms.Service("TFileService",
@@ -194,6 +199,7 @@ process.load("RecoTracker.FinalTrackSelectors.TrackerTrackHitFilter_cff")
 process.TrackerTrackHitFilter.src = 'TrackRefitter1'
 #process.TrackerTrackHitFilter.src = 'generalTracks'
 process.TrackerTrackHitFilter.commands = cms.vstring("drop PXB","keep PXB 2","keep PXB 3","keep PXB 4","keep PXE","keep TIB","keep TID","keep TOB","keep TEC")
+#process.TrackerTrackHitFilter.commands = cms.vstring("drop PXB","keep PXB 2","keep PXB 3","keep PXB 4","keep PXE","keep TIB","keep TID","keep TOB","keep TEC")
 
 #process.TrackerTrackHitFilter.useTrajectories= True  # this is needed only if you require some selections; but it will work even if you don't ask for them
 #process.TrackerTrackHitFilter.minimumHits = 6
