@@ -26,7 +26,7 @@ process.load("Configuration.StandardSequences.Reconstruction_cff")
 #process.GlobalTag.globaltag = 'GR_P_V56::All'
 process.GlobalTag.globaltag = '101X_dataRun2_Prompt_v11'
 
-####process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
 #process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000) )
 
 #filelist = FileUtils.loadListFromFile("inputlist.list")
@@ -36,7 +36,7 @@ process.GlobalTag.globaltag = '101X_dataRun2_Prompt_v11'
 process.source = cms.Source('PoolSource',
 #fileNames = cms.untracked.vstring(*filelist),
 fileNames = cms.untracked.vstring(
-'/store/data/Run2018C/ZeroBias/RAW-RECO/LogError-PromptReco-v1/000/319/347/00000/86EFC8CD-DE84-E811-8983-FA163EC985ED.root'
+#'/store/data/Run2018C/ZeroBias/RAW-RECO/LogError-PromptReco-v1/000/319/347/00000/86EFC8CD-DE84-E811-8983-FA163EC985ED.root'
 ),
 #skipEvents = cms.untracked.uint32(100000)
 inputCommands=cms.untracked.vstring(
@@ -159,6 +159,11 @@ process.analyzer = cms.EDAnalyzer('LambdaAnalyzer',
     vertices = cms.untracked.InputTag("offlinePrimaryVertices"),
     genParticles = cms.untracked.InputTag("genParticles"),
     T2V = cms.untracked.InputTag("Tracks2Vertex"),
+    trackingParticles = cms.InputTag("mix","MergedTrackTruth"),
+    AlgorithmName = cms.string('undefAlgorithm'),
+    BeamSpot = cms.untracked.InputTag('offlineBeamSpot'),
+    trackCandidates = cms.untracked.InputTag('generalTracks'),
+    #trackCandidates = cms.untracked.InputTag('ckfTrackCandidates'),
 )
 
 process.TFileService = cms.Service("TFileService",

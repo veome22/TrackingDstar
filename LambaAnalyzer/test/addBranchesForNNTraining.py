@@ -10,7 +10,7 @@ otree = tree.CloneTree(0)
 
 nentries = tree.GetEntries()
 print "nentries = ",nentries
-gridSize = 16
+gridSize = 6
 #nentries = 1200000
 
 isSharedHit = np.zeros(1,dtype=int)
@@ -22,9 +22,20 @@ for i in xrange(gridSize*gridSize):
 trackPt = np.zeros(1,dtype=float)
 trackEta = np.zeros(1,dtype=float)
 trackPhi = np.zeros(1,dtype=float)
+nUniqueSimTracksInSharedHit = np.zeros(1,dtype=int)
+sharedHitContainsGenLambda = np.zeros(1,dtype=bool)
+sharedHitContainsGenPion = np.zeros(1,dtype=bool)
+sharedHitContainsGenProton = np.zeros(1,dtype=bool)
+GenDeltaR =  np.zeros(1,dtype=float)
+
 otree.Branch("trackPt",trackPt,"trackPt/D")
 otree.Branch("trackEta",trackEta,"trackEta/D")
 otree.Branch("trackPhi",trackPt,"trackPhi/D")
+otree.Branch("nUniqueSimTracksInSharedHit",nUniqueSimTracksInSharedHit, "nUniqueSimTracksInSharedHit")
+otree.Branch("sharedHitContainsGenLambda", sharedHitContainsGenLambda, "sharedHitContainsGenLambda")
+otree.Branch("sharedHitContainsGenPion", sharedHitContainsGenPion, "sharedHitContainsGenPion")
+otree.Branch("sharedHitContainsGenProton", sharedHitContainsGenProton, "sharedHitContainsGenProton")
+otree.Branch("GenDeltaR",GenDeltaR,"GenDeltaR/D")
 
 def getPixelHist(pixels,gridSize):
     xmin = -1
@@ -57,8 +68,8 @@ def getPixelHist(pixels,gridSize):
        hist = ROOT.TH2F("hist_shared","hist_shared",gridSize,0,gridSize,gridSize,0,gridSize)
     return hist
 
-#for iEntry in xrange(nentries):
-for iEntry in xrange(1200000):
+for iEntry in xrange(nentries):
+##for iEntry in xrange(1200000):
 #for iEntry in xrange(1200000,nentries):
     if (iEntry % 1000 == 0): 
         print "processing entry: ",iEntry
@@ -106,7 +117,15 @@ for iEntry in xrange(1200000):
             trackPt[0] = tree.TrkProtonpt[0]
             trackEta[0] = tree.TrkProtoneta[0]
             trackPhi[0] = tree.TrkProtonphi[0]
-        
+        #Fill in pixel matching info
+        try:
+            nUniqueSimTracksInSharedHit[0] = tree.nUniqueSimTracksInSharedHit[0]
+        except:
+            continue
+        sharedHitContainsGenLambda[0] = tree.sharedHitContainsGenLambda[0]
+        sharedHitContainsGenPion[0] = tree.sharedHitContainsGenPion[0]
+        sharedHitContainsGenProton[0] =  tree.sharedHitContainsGenProton[0]
+        GenDeltaR[0] = tree.GenDeltaR[0] #dR between best gen lambda and reco lambda, good match is dR<0.1
         otree.Fill()
     #dr = sqrt( pow((abs(tree.TrkProtonphi[0]-tree.TrkPi1phi[0])-(abs(tree.TrkProtonphi[0]-tree.TrkPi1phi[0])>3.14)*2*3.14),2) + pow((tree.TrkProtoneta[0]-tree.TrkPi1eta[0]),2) )
     
