@@ -33,17 +33,28 @@ process.GlobalTag.globaltag = '101X_upgrade2018_realistic_v7'
 #filelist = FileUtils.loadListFromFile("inputlist.list")
 #filelist = FileUtils.loadListFromFile("onefile.list")
 process.maxEvents = cms.untracked.PSet( 
-    input = cms.untracked.int32(-1)
+    input = cms.untracked.int32(1000)
 )
 
 process.source = cms.Source("PoolSource",
                 #GEN-SIM-RECO file
                 fileNames=cms.untracked.vstring(
-                '/store/relval/CMSSW_10_2_3/RelValQCD_FlatPt_15_3000HS_13/GEN-SIM-RECO/PU25ns_102X_upgrade2018_realistic_v11-v1/20000/FAC4072D-E9C0-7D47-B58C-7C9C8580E39A.root', 
+                '/store/mc/RunIIAutumn18DR/SingleNeutrinoGun/GEN-SIM-RECO/102X_upgrade2018_realistic_v15_ext1-v2/710000/FEDDC6FC-190F-E04A-BA54-5F9CE7ED865B.root'
+					
+				#'/store/relval/CMSSW_10_2_3/RelValQCD_FlatPt_15_3000HS_13/GEN-SIM-RECO/PU25ns_102X_upgrade2018_realistic_v11-v1/20000/FAC4072D-E9C0-7D47-B58C-7C9C8580E39A.root', 
+				#'/store/mc/RunIIAutumn18DRPremix/SingleNeutrinoGun/GEN-SIM-RECO/102X_upgrade2018_realistic_v15-v3/30001/FFCAB38F-8CE0-8143-A807-CC5352839EF1.root',
                 ),
                 #GEN-SIM-DIGI-RAW parent file
                 secondaryFileNames=cms.untracked.vstring(
-                '/store/relval/CMSSW_10_2_3/RelValQCD_FlatPt_15_3000HS_13/GEN-SIM-DIGI-RAW/PU25ns_102X_upgrade2018_realistic_v11-v1/20000/E25311AE-F39E-924D-AAF9-623DDBBE1B8C.root ',
+                '/store/mc/RunIIAutumn18DR/SingleNeutrinoGun/GEN-SIM-DIGI-RAW/102X_upgrade2018_realistic_v15_ext1-v2/110005/AD74E13D-80AE-5240-9997-D39137CA04EE.root',
+				'/store/mc/RunIIAutumn18DR/SingleNeutrinoGun/GEN-SIM-DIGI-RAW/102X_upgrade2018_realistic_v15_ext1-v2/110005/AAEC33C1-CA49-7344-972D-FE31B77C07F6.root',
+				'/store/mc/RunIIAutumn18DR/SingleNeutrinoGun/GEN-SIM-DIGI-RAW/102X_upgrade2018_realistic_v15_ext1-v2/110005/5BFC00C5-6647-CD42-8B38-E74BA3333570.root',
+				'/store/mc/RunIIAutumn18DR/SingleNeutrinoGun/GEN-SIM-DIGI-RAW/102X_upgrade2018_realistic_v15_ext1-v2/110005/35B009A9-7E30-854B-9B11-FCDCB5621683.root',
+				'/store/mc/RunIIAutumn18DR/SingleNeutrinoGun/GEN-SIM-DIGI-RAW/102X_upgrade2018_realistic_v15_ext1-v2/110005/21B8A2BC-10C1-D14C-A54E-DB9E90BD682A.root ',
+				#'/store/relval/CMSSW_10_2_3/RelValQCD_FlatPt_15_3000HS_13/GEN-SIM-DIGI-RAW/PU25ns_102X_upgrade2018_realistic_v11-v1/20000/E25311AE-F39E-924D-AAF9-623DDBBE1B8C.root ',
+			#	'/store/mc/RunIIAutumn18DRPremix/SingleNeutrinoGun/GEN-SIM-DIGI-RAW/102X_upgrade2018_realistic_v15-v3/30001/476729A0-1A4A-E847-AD3E-F1A204EB0A66.root ',
+			#	'/store/mc/RunIIAutumn18DRPremix/SingleNeutrinoGun/GEN-SIM-DIGI-RAW/102X_upgrade2018_realistic_v15-v3/30001/55045E1A-828B-CB48-BD2D-D2259153C942.root ',
+			#	'/store/mc/RunIIAutumn18DRPremix/SingleNeutrinoGun/GEN-SIM-DIGI-RAW/102X_upgrade2018_realistic_v15-v3/30001/82097696-00DA-1B4B-9067-05F4D60417F0.root ',
                 ),   
 #skipEvents = cms.untracked.uint32(100000)
 inputCommands=cms.untracked.vstring(
@@ -167,10 +178,14 @@ process.analyzer = cms.EDAnalyzer('LambdaAnalyzer',
     T2V = cms.untracked.InputTag("Tracks2Vertex"),
     trackingParticles = cms.InputTag("mix","MergedTrackTruth"),
     trackingVertices = cms.InputTag("mix","MergedTrackTruth"),
+    AlgorithmName = cms.string('undefAlgorithm'),
+    BeamSpot = cms.untracked.InputTag('offlineBeamSpot'),
+    trackCandidates = cms.untracked.InputTag('generalTracks'),
+    PixelDigiSimLinkVector = cms.InputTag("simSiPixelDigis"),
 )
 
 process.TFileService = cms.Service("TFileService",
-    fileName = cms.string('TrkAnalysis_generalTracks.root')
+    fileName = cms.string('TrkAnalysis_generalTracks_IDmatching2.root')
 )
 
 #process.output = cms.OutputModule("PoolOutputModule",
@@ -204,6 +219,7 @@ process.TrackerTrackHitFilter.commands = cms.vstring("drop PXB","keep PXB 2","ke
 import RecoTracker.TrackProducer.CTFFinalFitWithMaterial_cff
 process.ctfProducerCustomised = RecoTracker.TrackProducer.CTFFinalFitWithMaterial_cff.ctfWithMaterialTracks.clone()
 process.ctfProducerCustomised.src = 'TrackerTrackHitFilter'
+
 
 process.all = cms.Path(process.MeasurementTrackerEvent*process.TrackRefitter1*process.TrackerTrackHitFilter*process.ctfProducerCustomised*process.analyzer)
 

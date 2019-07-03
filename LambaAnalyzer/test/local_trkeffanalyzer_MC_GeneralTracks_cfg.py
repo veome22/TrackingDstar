@@ -17,6 +17,8 @@ process.load("Configuration.StandardSequences.RawToDigi_cff")
 process.load("Configuration.EventContent.EventContent_cff")
 process.load("Configuration.StandardSequences.Reconstruction_cff")
 
+
+
 #process.GlobalTag.globaltag = 'GR_R_36X_V12A::All'
 #process.GlobalTag.globaltag = 'GR_R_39X_V6::All'
 #process.GlobalTag.globaltag = 'FT_R_42_V13A::All'
@@ -25,21 +27,42 @@ process.load("Configuration.StandardSequences.Reconstruction_cff")
 #process.GlobalTag.globaltag = 'GR_P_V23::All'
 #process.GlobalTag.globaltag = 'GR_P_V56::All'
 #process.GlobalTag.globaltag = '101X_dataRun2_Prompt_v11'
-#process.GlobalTag.globaltag = '101X_upgrade2018_realistic_v7' old one
-process.GlobalTag.globaltag = '102X_upgrade2018_realistic_v11'
+process.GlobalTag.globaltag = '101X_upgrade2018_realistic_v7'
+
 ###process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
 #process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000) )
 
 #filelist = FileUtils.loadListFromFile("inputlist.list")
 #filelist = FileUtils.loadListFromFile("onefile.list")
+process.maxEvents = cms.untracked.PSet( 
+    input = cms.untracked.int32(1000)
+)
 
-process.source = cms.Source('PoolSource',
-#fileNames = cms.untracked.vstring(*filelist),
-fileNames = cms.untracked.vstring(#'/store/data/Run2018C/ZeroBias/RAW-RECO/LogError-PromptReco-v1/000/319/347/00000/86EFC8CD-DE84-E811-8983-FA163EC985ED.root'
-#'/store/data/Run2018C/ZeroBias/RAW-RECO/LogError-PromptReco-v1/000/319/347/00000/86EFC8CD-DE84-E811-8983-FA163EC985ED.root'
-#'/store/mc/RunIIAutumn18DRPremix/QCD_Pt-15to7000_TuneCP5_Flat2018_13TeV_pythia8/GEN-SIM-RECO/102X_upgrade2018_realistic_v15_ext1-v2/60000/7E8A8DF4-FBBE-EF4F-97DB-0B1C8EE1A059.root'
-'/store/mc/RunIIAutumn18DRPremix/SingleNeutrino/GEN-SIM-RECO/forRECO_102X_upgrade2018_realistic_v15_ext1-v1/100000/18847E99-339C-634B-8F2B-C5CB4E0869CE.root'
-),
+process.source = cms.Source("PoolSource",
+                #GEN-SIM-RECO file
+                fileNames=cms.untracked.vstring(
+				'file:/eos/uscms/store/user/njh/Lambda_input/FEDDC6FC-190F-E04A-BA54-5F9CE7ED865B.root'	
+				#'/store/relval/CMSSW_10_2_3/RelValQCD_FlatPt_15_3000HS_13/GEN-SIM-RECO/PU25ns_102X_upgrade2018_realistic_v11-v1/20000/FAC4072D-E9C0-7D47-B58C-7C9C8580E39A.root', 
+				#'/store/mc/RunIIAutumn18DRPremix/SingleNeutrinoGun/GEN-SIM-RECO/102X_upgrade2018_realistic_v15-v3/30001/FFCAB38F-8CE0-8143-A807-CC5352839EF1.root',
+                ),
+                #GEN-SIM-DIGI-RAW parent file
+                secondaryFileNames=cms.untracked.vstring(
+                 'file:/eos/uscms/store/user/njh/Lambda_input/AD74E13D-80AE-5240-9997-D39137CA04EE.root',
+                 'file:/eos/uscms/store/user/njh/Lambda_input/AAEC33C1-CA49-7344-972D-FE31B77C07F6.root',
+                 'file:/eos/uscms/store/user/njh/Lambda_input/5BFC00C5-6647-CD42-8B38-E74BA3333570.root',
+                 'file:/eos/uscms/store/user/njh/Lambda_input/35B009A9-7E30-854B-9B11-FCDCB5621683.root',
+                 'file:/eos/uscms/store/user/njh/Lambda_input/21B8A2BC-10C1-D14C-A54E-DB9E90BD682A.root',
+                    
+                # '/store/mc/RunIIAutumn18DR/SingleNeutrinoGun/GEN-SIM-DIGI-RAW/102X_upgrade2018_realistic_v15_ext1-v2/110005/AD74E13D-80AE-5240-9997-D39137CA04EE.root',
+				#'/store/mc/RunIIAutumn18DR/SingleNeutrinoGun/GEN-SIM-DIGI-RAW/102X_upgrade2018_realistic_v15_ext1-v2/110005/AAEC33C1-CA49-7344-972D-FE31B77C07F6.root',
+				#'/store/mc/RunIIAutumn18DR/SingleNeutrinoGun/GEN-SIM-DIGI-RAW/102X_upgrade2018_realistic_v15_ext1-v2/110005/5BFC00C5-6647-CD42-8B38-E74BA3333570.root',
+				#'/store/mc/RunIIAutumn18DR/SingleNeutrinoGun/GEN-SIM-DIGI-RAW/102X_upgrade2018_realistic_v15_ext1-v2/110005/35B009A9-7E30-854B-9B11-FCDCB5621683.root',
+				#'/store/mc/RunIIAutumn18DR/SingleNeutrinoGun/GEN-SIM-DIGI-RAW/102X_upgrade2018_realistic_v15_ext1-v2/110005/21B8A2BC-10C1-D14C-A54E-DB9E90BD682A.root ',
+				##'/store/relval/CMSSW_10_2_3/RelValQCD_FlatPt_15_3000HS_13/GEN-SIM-DIGI-RAW/PU25ns_102X_upgrade2018_realistic_v11-v1/20000/E25311AE-F39E-924D-AAF9-623DDBBE1B8C.root ',
+			#	'/store/mc/RunIIAutumn18DRPremix/SingleNeutrinoGun/GEN-SIM-DIGI-RAW/102X_upgrade2018_realistic_v15-v3/30001/476729A0-1A4A-E847-AD3E-F1A204EB0A66.root ',
+			#	'/store/mc/RunIIAutumn18DRPremix/SingleNeutrinoGun/GEN-SIM-DIGI-RAW/102X_upgrade2018_realistic_v15-v3/30001/55045E1A-828B-CB48-BD2D-D2259153C942.root ',
+			#	'/store/mc/RunIIAutumn18DRPremix/SingleNeutrinoGun/GEN-SIM-DIGI-RAW/102X_upgrade2018_realistic_v15-v3/30001/82097696-00DA-1B4B-9067-05F4D60417F0.root ',
+                ),   
 #skipEvents = cms.untracked.uint32(100000)
 inputCommands=cms.untracked.vstring(
                   'keep *',
@@ -151,10 +174,32 @@ process.trig = cms.EDFilter("HLTHighLevel",
 #)
 
 process.analyzer = cms.EDAnalyzer('LambdaAnalyzer',
-    doGen=cms.bool(True),#change this back to True
+    doGen=cms.bool(True),
     doK3pi=cms.bool(True),
     doKpi=cms.bool(True),
     
+    #associateRecoTracks = cms.bool(False),
+    #associateHitbySimTrack=cms.bool(False),
+    #associatePixel=cms.bool(True),
+    #associateStrip=cms.bool(False),
+    #usePhase2Tracker=cms.bool(False),
+    #pixelSimLinkSrc = cms.InputTag("simSiPixelDigis"),
+    #stripSimLinkSrc = cms.InputTag("simSiStripDigis"),
+    #phase2TrackerSimLinkSrc = cms.InputTag("simSiPixelDigis", "Tracker"),
+    #ROUList = cms.vstring('TrackerHitsPixelBarrelLowTof',
+    #                     'TrackerHitsPixelBarrelHighTof',
+    #                     'TrackerHitsPixelEndcapLowTof',
+    #                     'TrackerHitsPixelEndcapHighTof',
+    #                     'TrackerHitsTIBLowTof',
+    #                     'TrackerHitsTIBHighTof',
+    #                     'TrackerHitsTIDLowTof',
+    #                     'TrackerHitsTIDHighTof',
+    #                     'TrackerHitsTOBLowTof',
+    #                     'TrackerHitsTOBHighTof',
+    #                     'TrackerHitsTECLowTof',
+    #                     'TrackerHitsTECHighTof'),
+    
+
     tracks_noPXB1 = cms.untracked.InputTag("ctfProducerCustomised"),
     tracks = cms.untracked.InputTag("generalTracks"),
     vertices = cms.untracked.InputTag("offlinePrimaryVertices"),
@@ -166,6 +211,8 @@ process.analyzer = cms.EDAnalyzer('LambdaAnalyzer',
     BeamSpot = cms.untracked.InputTag('offlineBeamSpot'),
     trackCandidates = cms.untracked.InputTag('generalTracks'),
     PixelDigiSimLinkVector = cms.InputTag("simSiPixelDigis"),
+    SimTracks = cms.InputTag("g4SimHits")
+    #PixelDigiSimLinkVector = cms.InputTag("mixData","PixelDigiSimLink"),
 )
 
 process.TFileService = cms.Service("TFileService",
