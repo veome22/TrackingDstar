@@ -131,6 +131,10 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       //Gen quantities
       std::vector<double> GenLambdaVtxPosx, GenLambdaVtxPosy, GenLambdaVtxPosz, GenLambdaSourceVtxPosx, GenLambdaSourceVtxPosy, GenLambdaSourceVtxPosz,GenLambdaPt, GenLambdaP, GenLambdaPhi, GenLambdaEta, GenLambdaMass, GenLambdaMt, GenLambdaE, GenLambdaEt, GenLambdaPx, GenLambdaPy, GenLambdaPz, GenFlightLength, GenDeltaR;
       std::vector<bool> GenVertexMatch; 
+    
+      std::vector<double> GenProtonPt, GenProtonP, GenProtonPhi, GenProtonEta, GenProtonMass, GenProtonMt, GenProtonE, GenProtonEt, GenProtonPx, GenProtonPy, GenProtonPz, GenProtonDeltaR;
+      std::vector<double> GenPionPt, GenPionP, GenPionPhi, GenPionEta, GenPionMass, GenPionMt, GenPionE, GenPionEt, GenPionPx, GenPionPy, GenPionPz, GenPionDeltaR;
+
      
       //Hit Truth matching quantities
       std::vector<int> nSimTracksshared, nSimTrackspion, nSimTracksproton, nUniqueSimTracksInSharedHit,nUniqueSimTracksInPionHit,nUniqueSimTracksInProtonHit;
@@ -1161,6 +1165,33 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
         	//genLambdaVtx->position is the lambda->pion,proton vertex.  genLambda.v() is the vertex the lambda is created at
 			//std::cout << "Calculating Gen Lambda Flight Length" << std::endl;
         	GenFlightLength.push_back(sqrt(pow(genLambdaVtx->position().x()-genLambda.vx(),2) + pow(genLambdaVtx->position().y() - genLambda.vy(),2) + pow(genLambdaVtx->position().z() - genLambda.vz(),2)));
+            
+            // Gen Protons and Pions:
+            GenProtonPt.push_back(genProton.pt());
+        	GenProtonP.push_back(genProton.p());
+        	GenProtonPhi.push_back(genProton.phi());
+        	GenProtonEta.push_back(genProton.eta());
+            GenProtonMass.push_back(genProton.mass());
+        	GenProtonMt.push_back(genProton.mt());
+        	GenProtonE.push_back(genProton.energy());
+        	GenProtonEt.push_back(genProton.et());
+        	GenProtonPx.push_back(genProton.px());
+        	GenProtonPy.push_back(genProton.py());
+        	GenProtonPz.push_back(genProton.pz());
+        	GenProtonDeltaR.push_back(p_dR);
+            
+            GenPionPt.push_back(genPion.pt());
+        	GenPionP.push_back(genPion.p());
+        	GenPionPhi.push_back(genPion.phi());
+        	GenPionEta.push_back(genPion.eta());
+            GenPionMass.push_back(genPion.mass());
+        	GenPionMt.push_back(genPion.mt());
+        	GenPionE.push_back(genPion.energy());
+        	GenPionEt.push_back(genPion.et());
+        	GenPionPx.push_back(genPion.px());
+        	GenPionPy.push_back(genPion.py());
+        	GenPionPz.push_back(genPion.pz());
+        	GenPionDeltaR.push_back(pion_dR);
 
             //Hit matching
             nSimTracksshared.push_back(nSimTracksShared);
@@ -1274,6 +1305,10 @@ void LambdaAnalyzer::initialize(){
   GenLambdaVtxPosx.clear(); GenLambdaVtxPosy.clear(); GenLambdaVtxPosz.clear();
   GenLambdaSourceVtxPosx.clear(); GenLambdaSourceVtxPosy.clear(); GenLambdaSourceVtxPosz.clear();
   GenLambdaMass.clear(); GenLambdaPt.clear(); GenLambdaPhi.clear(); GenLambdaEta.clear(); GenLambdaMt.clear(); GenLambdaE.clear(); GenLambdaEt.clear(); GenLambdaPx.clear(); GenLambdaPy.clear(); GenLambdaPz.clear(); GenFlightLength.clear(); GenDeltaR.clear(); GenVertexMatch.clear();
+    
+  // Gen Proton and Pion
+  GenProtonPt.clear(); GenProtonP.clear(); GenProtonPhi.clear(); GenProtonEta.clear(); GenProtonMass.clear(); GenProtonMt.clear(); GenProtonE.clear(); GenProtonEt.clear(); GenProtonPx.clear(); GenProtonPy.clear(); GenProtonPz.clear(); GenProtonDeltaR.clear();
+  GenPionPt.clear(); GenPionP.clear(); GenPionPhi.clear(); GenPionEta.clear(); GenPionMass.clear(); GenPionMt.clear(); GenPionE.clear(); GenPionEt.clear(); GenPionPx.clear(); GenPionPy.clear(); GenPionPz.clear(); GenPionDeltaR.clear();
 
   //Hit Matching
   nSimTracksshared.clear(); nSimTrackspion.clear(); nSimTracksproton.clear(); nUniqueSimTracksInSharedHit.clear(); nUniqueSimTracksInPionHit.clear(); nUniqueSimTracksInProtonHit.clear(); sharedHitContainsGenLambda.clear(); sharedHitContainsGenPion.clear(); sharedHitContainsGenProton.clear();
@@ -1424,7 +1459,32 @@ tree1->Branch("GenLambdaPz",&GenLambdaPz);
 tree1->Branch("GenFlightLength",&GenFlightLength);
 tree1->Branch("GenDeltaR",&GenDeltaR);
 tree1->Branch("GenVertexMatch",&GenVertexMatch);
-
+    
+//Gen Protons and Pions
+tree1->Branch("GenProtonPt",&GenProtonPt);
+tree1->Branch("GenProtonP",&GenProtonP);
+tree1->Branch("GenProtonPhi",&GenProtonPhi);
+tree1->Branch("GenProtonEta",&GenProtonEta);
+tree1->Branch("GenProtonMass",&GenProtonMass);
+tree1->Branch("GenProtonMt",&GenProtonMt);
+tree1->Branch("GenProtonE",&GenProtonE);
+tree1->Branch("GenProtonPx",&GenProtonPx);
+tree1->Branch("GenProtonPy",&GenProtonPy);
+tree1->Branch("GenProtonPz",&GenProtonPz);
+tree1->Branch("GenProtonDeltaR",&GenProtonDeltaR);
+    
+tree1->Branch("GenPionPt",&GenPionPt);
+tree1->Branch("GenPionP",&GenPionP);
+tree1->Branch("GenPionPhi",&GenPionPhi);
+tree1->Branch("GenPionEta",&GenPionEta);
+tree1->Branch("GenPionMass",&GenPionMass);
+tree1->Branch("GenPionMt",&GenPionMt);
+tree1->Branch("GenPionE",&GenPionE);
+tree1->Branch("GenPionPx",&GenPionPx);
+tree1->Branch("GenPionPy",&GenPionPy);
+tree1->Branch("GenPionPz",&GenPionPz);
+tree1->Branch("GenPionDeltaR",&GenPionDeltaR);
+    
 //Hit Matching
 tree1->Branch("nSimTracksshared",&nSimTracksshared);
 tree1->Branch("nSimTrackspion",&nSimTrackspion);
