@@ -1101,36 +1101,36 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
 //        KpiDSDeltaR.push_back(deltaR(d0_p4.eta(),d0_p4.phi(),trkS->track().eta(),trkS->track().phi()));
 
-          TrkPi1pt.push_back(ip4_pi1.Pt());
-          TrkProtonpt.push_back(ip4_proton.Pt());
-          TrkPi1eta.push_back(ip4_pi1.Eta());
-          TrkProtoneta.push_back(ip4_proton.Eta());
-          TrkPi1mass.push_back(ip4_pi1.M());
-          TrkProtonmass.push_back(ip4_proton.M());
-          TrkPi1phi.push_back(ip4_pi1.Phi());
-          TrkProtonphi.push_back(ip4_proton.Phi());
-          TrkPi1chi2.push_back(pi1->track().normalizedChi2());
-          TrkProtonchi2.push_back(proton->track().normalizedChi2());
-          TrkPi1ndof.push_back(pi1->track().ndof());
-          TrkProtonndof.push_back(proton->track().ndof());
-          TrkPi1dxy.push_back(pi1->track().dxy(RecVtx.position()));
-          TrkPi1dz.push_back(pi1->track().dz(RecVtx.position()));
-          TrkProtondxy.push_back(pi1->track().dxy(RecVtx.position()));
-          TrkProtondz.push_back(pi1->track().dz(RecVtx.position()));
-          PionProtondz.push_back(fabs(traj1.position().z()-traj2.position().z()));
-          //TrkPi1pt.push_back(pi1->track().pt());
-          //TrkProtonpt.push_back(proton->track().pt());
-          //TrkPi1eta.push_back(pi1->track().eta());
-          //TrkProtoneta.push_back(proton->track().eta());
-          //TrkPi1mass.push_back(ip4_pi1.M());
-          //TrkProtonmass.push_back(ip4_proton.M());
-          //TrkPi1phi.push_back(pi1->track().phi());
-          //TrkProtonphi.push_back(proton->track().phi());
-          //TrkPi1chi2.push_back(pi1->track().normalizedChi2());
-          //TrkProtonchi2.push_back(proton->track().normalizedChi2());
-          //TrkPi1ndof.push_back(pi1->track().ndof());
-          //TrkProtonndof.push_back(proton->track().ndof());
-//        KpiTrkpipt.push_back(pi_f.track().pt());
+        TrkPi1pt.push_back(ip4_pi1.Pt());
+        TrkProtonpt.push_back(ip4_proton.Pt());
+        TrkPi1eta.push_back(ip4_pi1.Eta());
+        TrkProtoneta.push_back(ip4_proton.Eta());
+        TrkPi1mass.push_back(ip4_pi1.M());
+        TrkProtonmass.push_back(ip4_proton.M());
+        TrkPi1phi.push_back(ip4_pi1.Phi());
+        TrkProtonphi.push_back(ip4_proton.Phi());
+        TrkPi1chi2.push_back(pi1->track().normalizedChi2());
+        TrkProtonchi2.push_back(proton->track().normalizedChi2());
+        TrkPi1ndof.push_back(pi1->track().ndof());
+        TrkProtonndof.push_back(proton->track().ndof());
+        TrkPi1dxy.push_back(pi1->track().dxy(RecVtx.position()));
+        TrkPi1dz.push_back(pi1->track().dz(RecVtx.position()));
+        TrkProtondxy.push_back(pi1->track().dxy(RecVtx.position()));
+        TrkProtondz.push_back(pi1->track().dz(RecVtx.position()));
+        PionProtondz.push_back(fabs(traj1.position().z()-traj2.position().z()));
+        //TrkPi1pt.push_back(pi1->track().pt());
+        //TrkProtonpt.push_back(proton->track().pt());
+        //TrkPi1eta.push_back(pi1->track().eta());
+        //TrkProtoneta.push_back(proton->track().eta());
+        //TrkPi1mass.push_back(ip4_pi1.M());
+        //TrkProtonmass.push_back(ip4_proton.M());
+        //TrkPi1phi.push_back(pi1->track().phi());
+        //TrkProtonphi.push_back(proton->track().phi());
+        //TrkPi1chi2.push_back(pi1->track().normalizedChi2());
+        //TrkProtonchi2.push_back(proton->track().normalizedChi2());
+        //TrkPi1ndof.push_back(pi1->track().ndof());
+        //TrkProtonndof.push_back(proton->track().ndof());
+        KpiTrkpipt.push_back(pi_f.track().pt());
 //        KpiTrkSpt.push_back(trkS->track().pt());
 
 //        KpiTrkKeta.push_back(K_f.track().eta());
@@ -1142,29 +1142,29 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
 //        KpiTrkSphi.push_back(trkS->track().phi());
 
 //        KpiTrkScharge.push_back(trkS->charge());
-		if(genLambdaFound){
-			//std::cout << "Adding Gen Lambda quantities" << std::endl;
+        if(genLambdaFound){
+            //std::cout << "Adding Gen Lambda quantities" << std::endl;
 			GenLambdaVtxPosx.push_back(genLambdaVtx->position().x());
-        	GenLambdaVtxPosy.push_back(genLambdaVtx->position().y());
-        	GenLambdaVtxPosz.push_back(genLambdaVtx->position().z());
-        	GenLambdaSourceVtxPosx.push_back(genLambda.vx());
-        	GenLambdaSourceVtxPosy.push_back(genLambda.vy());
-        	GenLambdaSourceVtxPosz.push_back(genLambda.vz());
-        	GenLambdaPt.push_back(genLambda.pt());
-        	GenLambdaP.push_back(genLambda.p());
-        	GenLambdaPhi.push_back(genLambda.phi());
-        	GenLambdaEta.push_back(genLambda.eta());
-        	GenLambdaMass.push_back(genLambda.mass());
-        	GenLambdaMt.push_back(genLambda.mt());
-        	GenLambdaE.push_back(genLambda.energy());
-        	GenLambdaEt.push_back(genLambda.et());
-        	GenLambdaPx.push_back(genLambda.px());
-        	GenLambdaPy.push_back(genLambda.py());
-        	GenLambdaPz.push_back(genLambda.pz());
-        	GenDeltaR.push_back(min_dR);
-        	//genLambdaVtx->position is the lambda->pion,proton vertex.  genLambda.v() is the vertex the lambda is created at
-			//std::cout << "Calculating Gen Lambda Flight Length" << std::endl;
-        	GenFlightLength.push_back(sqrt(pow(genLambdaVtx->position().x()-genLambda.vx(),2) + pow(genLambdaVtx->position().y() - genLambda.vy(),2) + pow(genLambdaVtx->position().z() - genLambda.vz(),2)));
+            GenLambdaVtxPosy.push_back(genLambdaVtx->position().y());
+            GenLambdaVtxPosz.push_back(genLambdaVtx->position().z());
+            GenLambdaSourceVtxPosx.push_back(genLambda.vx());
+            GenLambdaSourceVtxPosy.push_back(genLambda.vy());
+            GenLambdaSourceVtxPosz.push_back(genLambda.vz());
+            GenLambdaPt.push_back(genLambda.pt());
+            GenLambdaP.push_back(genLambda.p());
+            GenLambdaPhi.push_back(genLambda.phi());
+            GenLambdaEta.push_back(genLambda.eta());
+            GenLambdaMass.push_back(genLambda.mass());
+            GenLambdaMt.push_back(genLambda.mt());
+            GenLambdaE.push_back(genLambda.energy());
+            GenLambdaEt.push_back(genLambda.et());
+            GenLambdaPx.push_back(genLambda.px());
+            GenLambdaPy.push_back(genLambda.py());
+            GenLambdaPz.push_back(genLambda.pz());
+            GenDeltaR.push_back(min_dR);
+            //genLambdaVtx->position is the lambda->pion,proton vertex.  genLambda.v() is the vertex the lambda is created at
+            //std::cout << "Calculating Gen Lambda Flight Length" << std::endl;
+            GenFlightLength.push_back(sqrt(pow(genLambdaVtx->position().x()-genLambda.vx(),2) + pow(genLambdaVtx->position().y() - genLambda.vy(),2) + pow(genLambdaVtx->position().z() - genLambda.vz(),2)));
             
             // Gen Protons and Pions:
             GenProtonPt.push_back(genProton.pt());
