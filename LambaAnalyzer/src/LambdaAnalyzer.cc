@@ -1144,7 +1144,7 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
 //        KpiTrkScharge.push_back(trkS->charge());
         if(genLambdaFound){
             //std::cout << "Adding Gen Lambda quantities" << std::endl;
-			GenLambdaVtxPosx.push_back(genLambdaVtx->position().x());
+            GenLambdaVtxPosx.push_back(genLambdaVtx->position().x());
             GenLambdaVtxPosy.push_back(genLambdaVtx->position().y());
             GenLambdaVtxPosz.push_back(genLambdaVtx->position().z());
             GenLambdaSourceVtxPosx.push_back(genLambda.vx());
