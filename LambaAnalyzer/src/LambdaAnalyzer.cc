@@ -131,10 +131,6 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       //Gen quantities
       std::vector<double> GenLambdaVtxPosx, GenLambdaVtxPosy, GenLambdaVtxPosz, GenLambdaSourceVtxPosx, GenLambdaSourceVtxPosy, GenLambdaSourceVtxPosz,GenLambdaPt, GenLambdaP, GenLambdaPhi, GenLambdaEta, GenLambdaMass, GenLambdaMt, GenLambdaE, GenLambdaEt, GenLambdaPx, GenLambdaPy, GenLambdaPz, GenFlightLength, GenDeltaR;
       std::vector<bool> GenVertexMatch; 
-    
-      std::vector<double> GenProtonPt, GenProtonP, GenProtonPhi, GenProtonEta, GenProtonMass, GenProtonMt, GenProtonE, GenProtonEt, GenProtonPx, GenProtonPy, GenProtonPz, GenProtonDeltaR;
-      std::vector<double> GenPionPt, GenPionP, GenPionPhi, GenPionEta, GenPionMass, GenPionMt, GenPionE, GenPionEt, GenPionPx, GenPionPy, GenPionPz, GenPionDeltaR;
-
      
       //Hit Truth matching quantities
       std::vector<int> nSimTracksshared, nSimTrackspion, nSimTracksproton, nUniqueSimTracksInSharedHit,nUniqueSimTracksInPionHit,nUniqueSimTracksInProtonHit;
@@ -1101,36 +1097,36 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
 //        KpiDSDeltaR.push_back(deltaR(d0_p4.eta(),d0_p4.phi(),trkS->track().eta(),trkS->track().phi()));
 
-        TrkPi1pt.push_back(ip4_pi1.Pt());
-        TrkProtonpt.push_back(ip4_proton.Pt());
-        TrkPi1eta.push_back(ip4_pi1.Eta());
-        TrkProtoneta.push_back(ip4_proton.Eta());
-        TrkPi1mass.push_back(ip4_pi1.M());
-        TrkProtonmass.push_back(ip4_proton.M());
-        TrkPi1phi.push_back(ip4_pi1.Phi());
-        TrkProtonphi.push_back(ip4_proton.Phi());
-        TrkPi1chi2.push_back(pi1->track().normalizedChi2());
-        TrkProtonchi2.push_back(proton->track().normalizedChi2());
-        TrkPi1ndof.push_back(pi1->track().ndof());
-        TrkProtonndof.push_back(proton->track().ndof());
-        TrkPi1dxy.push_back(pi1->track().dxy(RecVtx.position()));
-        TrkPi1dz.push_back(pi1->track().dz(RecVtx.position()));
-        TrkProtondxy.push_back(pi1->track().dxy(RecVtx.position()));
-        TrkProtondz.push_back(pi1->track().dz(RecVtx.position()));
-        PionProtondz.push_back(fabs(traj1.position().z()-traj2.position().z()));
-        //TrkPi1pt.push_back(pi1->track().pt());
-        //TrkProtonpt.push_back(proton->track().pt());
-        //TrkPi1eta.push_back(pi1->track().eta());
-        //TrkProtoneta.push_back(proton->track().eta());
-        //TrkPi1mass.push_back(ip4_pi1.M());
-        //TrkProtonmass.push_back(ip4_proton.M());
-        //TrkPi1phi.push_back(pi1->track().phi());
-        //TrkProtonphi.push_back(proton->track().phi());
-        //TrkPi1chi2.push_back(pi1->track().normalizedChi2());
-        //TrkProtonchi2.push_back(proton->track().normalizedChi2());
-        //TrkPi1ndof.push_back(pi1->track().ndof());
-        //TrkProtonndof.push_back(proton->track().ndof());
-        KpiTrkpipt.push_back(pi_f.track().pt());
+          TrkPi1pt.push_back(ip4_pi1.Pt());
+          TrkProtonpt.push_back(ip4_proton.Pt());
+          TrkPi1eta.push_back(ip4_pi1.Eta());
+          TrkProtoneta.push_back(ip4_proton.Eta());
+          TrkPi1mass.push_back(ip4_pi1.M());
+          TrkProtonmass.push_back(ip4_proton.M());
+          TrkPi1phi.push_back(ip4_pi1.Phi());
+          TrkProtonphi.push_back(ip4_proton.Phi());
+          TrkPi1chi2.push_back(pi1->track().normalizedChi2());
+          TrkProtonchi2.push_back(proton->track().normalizedChi2());
+          TrkPi1ndof.push_back(pi1->track().ndof());
+          TrkProtonndof.push_back(proton->track().ndof());
+          TrkPi1dxy.push_back(pi1->track().dxy(RecVtx.position()));
+          TrkPi1dz.push_back(pi1->track().dz(RecVtx.position()));
+          TrkProtondxy.push_back(pi1->track().dxy(RecVtx.position()));
+          TrkProtondz.push_back(pi1->track().dz(RecVtx.position()));
+          PionProtondz.push_back(fabs(traj1.position().z()-traj2.position().z()));
+          //TrkPi1pt.push_back(pi1->track().pt());
+          //TrkProtonpt.push_back(proton->track().pt());
+          //TrkPi1eta.push_back(pi1->track().eta());
+          //TrkProtoneta.push_back(proton->track().eta());
+          //TrkPi1mass.push_back(ip4_pi1.M());
+          //TrkProtonmass.push_back(ip4_proton.M());
+          //TrkPi1phi.push_back(pi1->track().phi());
+          //TrkProtonphi.push_back(proton->track().phi());
+          //TrkPi1chi2.push_back(pi1->track().normalizedChi2());
+          //TrkProtonchi2.push_back(proton->track().normalizedChi2());
+          //TrkPi1ndof.push_back(pi1->track().ndof());
+          //TrkProtonndof.push_back(proton->track().ndof());
+//        KpiTrkpipt.push_back(pi_f.track().pt());
 //        KpiTrkSpt.push_back(trkS->track().pt());
 
 //        KpiTrkKeta.push_back(K_f.track().eta());
@@ -1142,56 +1138,29 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
 //        KpiTrkSphi.push_back(trkS->track().phi());
 
 //        KpiTrkScharge.push_back(trkS->charge());
-        if(genLambdaFound){
-            //std::cout << "Adding Gen Lambda quantities" << std::endl;
-            GenLambdaVtxPosx.push_back(genLambdaVtx->position().x());
-            GenLambdaVtxPosy.push_back(genLambdaVtx->position().y());
-            GenLambdaVtxPosz.push_back(genLambdaVtx->position().z());
-            GenLambdaSourceVtxPosx.push_back(genLambda.vx());
-            GenLambdaSourceVtxPosy.push_back(genLambda.vy());
-            GenLambdaSourceVtxPosz.push_back(genLambda.vz());
-            GenLambdaPt.push_back(genLambda.pt());
-            GenLambdaP.push_back(genLambda.p());
-            GenLambdaPhi.push_back(genLambda.phi());
-            GenLambdaEta.push_back(genLambda.eta());
-            GenLambdaMass.push_back(genLambda.mass());
-            GenLambdaMt.push_back(genLambda.mt());
-            GenLambdaE.push_back(genLambda.energy());
-            GenLambdaEt.push_back(genLambda.et());
-            GenLambdaPx.push_back(genLambda.px());
-            GenLambdaPy.push_back(genLambda.py());
-            GenLambdaPz.push_back(genLambda.pz());
-            GenDeltaR.push_back(min_dR);
-            //genLambdaVtx->position is the lambda->pion,proton vertex.  genLambda.v() is the vertex the lambda is created at
-            //std::cout << "Calculating Gen Lambda Flight Length" << std::endl;
-            GenFlightLength.push_back(sqrt(pow(genLambdaVtx->position().x()-genLambda.vx(),2) + pow(genLambdaVtx->position().y() - genLambda.vy(),2) + pow(genLambdaVtx->position().z() - genLambda.vz(),2)));
-            
-            // Gen Protons and Pions:
-            GenProtonPt.push_back(genProton.pt());
-            GenProtonP.push_back(genProton.p());
-            GenProtonPhi.push_back(genProton.phi());
-            GenProtonEta.push_back(genProton.eta());
-            GenProtonMass.push_back(genProton.mass());
-            GenProtonMt.push_back(genProton.mt());
-            GenProtonE.push_back(genProton.energy());
-            GenProtonEt.push_back(genProton.et());
-            GenProtonPx.push_back(genProton.px());
-            GenProtonPy.push_back(genProton.py());
-            GenProtonPz.push_back(genProton.pz());
-            GenProtonDeltaR.push_back(p_dR);
-            
-            GenPionPt.push_back(genPion.pt());
-            GenPionP.push_back(genPion.p());
-            GenPionPhi.push_back(genPion.phi());
-            GenPionEta.push_back(genPion.eta());
-            GenPionMass.push_back(genPion.mass());
-            GenPionMt.push_back(genPion.mt());
-            GenPionE.push_back(genPion.energy());
-            GenPionEt.push_back(genPion.et());
-            GenPionPx.push_back(genPion.px());
-            GenPionPy.push_back(genPion.py());
-            GenPionPz.push_back(genPion.pz());
-            GenPionDeltaR.push_back(pion_dR);
+		if(genLambdaFound){
+			//std::cout << "Adding Gen Lambda quantities" << std::endl;
+			GenLambdaVtxPosx.push_back(genLambdaVtx->position().x());
+        	GenLambdaVtxPosy.push_back(genLambdaVtx->position().y());
+        	GenLambdaVtxPosz.push_back(genLambdaVtx->position().z());
+        	GenLambdaSourceVtxPosx.push_back(genLambda.vx());
+        	GenLambdaSourceVtxPosy.push_back(genLambda.vy());
+        	GenLambdaSourceVtxPosz.push_back(genLambda.vz());
+        	GenLambdaPt.push_back(genLambda.pt());
+        	GenLambdaP.push_back(genLambda.p());
+        	GenLambdaPhi.push_back(genLambda.phi());
+        	GenLambdaEta.push_back(genLambda.eta());
+        	GenLambdaMass.push_back(genLambda.mass());
+        	GenLambdaMt.push_back(genLambda.mt());
+        	GenLambdaE.push_back(genLambda.energy());
+        	GenLambdaEt.push_back(genLambda.et());
+        	GenLambdaPx.push_back(genLambda.px());
+        	GenLambdaPy.push_back(genLambda.py());
+        	GenLambdaPz.push_back(genLambda.pz());
+        	GenDeltaR.push_back(min_dR);
+        	//genLambdaVtx->position is the lambda->pion,proton vertex.  genLambda.v() is the vertex the lambda is created at
+			//std::cout << "Calculating Gen Lambda Flight Length" << std::endl;
+        	GenFlightLength.push_back(sqrt(pow(genLambdaVtx->position().x()-genLambda.vx(),2) + pow(genLambdaVtx->position().y() - genLambda.vy(),2) + pow(genLambdaVtx->position().z() - genLambda.vz(),2)));
 
             //Hit matching
             nSimTracksshared.push_back(nSimTracksShared);
@@ -1305,10 +1274,6 @@ void LambdaAnalyzer::initialize(){
   GenLambdaVtxPosx.clear(); GenLambdaVtxPosy.clear(); GenLambdaVtxPosz.clear();
   GenLambdaSourceVtxPosx.clear(); GenLambdaSourceVtxPosy.clear(); GenLambdaSourceVtxPosz.clear();
   GenLambdaMass.clear(); GenLambdaPt.clear(); GenLambdaPhi.clear(); GenLambdaEta.clear(); GenLambdaMt.clear(); GenLambdaE.clear(); GenLambdaEt.clear(); GenLambdaPx.clear(); GenLambdaPy.clear(); GenLambdaPz.clear(); GenFlightLength.clear(); GenDeltaR.clear(); GenVertexMatch.clear();
-    
-  // Gen Proton and Pion
-  GenProtonPt.clear(); GenProtonP.clear(); GenProtonPhi.clear(); GenProtonEta.clear(); GenProtonMass.clear(); GenProtonMt.clear(); GenProtonE.clear(); GenProtonEt.clear(); GenProtonPx.clear(); GenProtonPy.clear(); GenProtonPz.clear(); GenProtonDeltaR.clear();
-  GenPionPt.clear(); GenPionP.clear(); GenPionPhi.clear(); GenPionEta.clear(); GenPionMass.clear(); GenPionMt.clear(); GenPionE.clear(); GenPionEt.clear(); GenPionPx.clear(); GenPionPy.clear(); GenPionPz.clear(); GenPionDeltaR.clear();
 
   //Hit Matching
   nSimTracksshared.clear(); nSimTrackspion.clear(); nSimTracksproton.clear(); nUniqueSimTracksInSharedHit.clear(); nUniqueSimTracksInPionHit.clear(); nUniqueSimTracksInProtonHit.clear(); sharedHitContainsGenLambda.clear(); sharedHitContainsGenPion.clear(); sharedHitContainsGenProton.clear();
@@ -1459,32 +1424,7 @@ tree1->Branch("GenLambdaPz",&GenLambdaPz);
 tree1->Branch("GenFlightLength",&GenFlightLength);
 tree1->Branch("GenDeltaR",&GenDeltaR);
 tree1->Branch("GenVertexMatch",&GenVertexMatch);
-    
-//Gen Protons and Pions
-tree1->Branch("GenProtonPt",&GenProtonPt);
-tree1->Branch("GenProtonP",&GenProtonP);
-tree1->Branch("GenProtonPhi",&GenProtonPhi);
-tree1->Branch("GenProtonEta",&GenProtonEta);
-tree1->Branch("GenProtonMass",&GenProtonMass);
-tree1->Branch("GenProtonMt",&GenProtonMt);
-tree1->Branch("GenProtonE",&GenProtonE);
-tree1->Branch("GenProtonPx",&GenProtonPx);
-tree1->Branch("GenProtonPy",&GenProtonPy);
-tree1->Branch("GenProtonPz",&GenProtonPz);
-tree1->Branch("GenProtonDeltaR",&GenProtonDeltaR);
-    
-tree1->Branch("GenPionPt",&GenPionPt);
-tree1->Branch("GenPionP",&GenPionP);
-tree1->Branch("GenPionPhi",&GenPionPhi);
-tree1->Branch("GenPionEta",&GenPionEta);
-tree1->Branch("GenPionMass",&GenPionMass);
-tree1->Branch("GenPionMt",&GenPionMt);
-tree1->Branch("GenPionE",&GenPionE);
-tree1->Branch("GenPionPx",&GenPionPx);
-tree1->Branch("GenPionPy",&GenPionPy);
-tree1->Branch("GenPionPz",&GenPionPz);
-tree1->Branch("GenPionDeltaR",&GenPionDeltaR);
-    
+
 //Hit Matching
 tree1->Branch("nSimTracksshared",&nSimTracksshared);
 tree1->Branch("nSimTrackspion",&nSimTrackspion);
