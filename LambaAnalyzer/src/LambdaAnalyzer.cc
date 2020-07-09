@@ -138,8 +138,8 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
      
       //Hit Truth matching quantities
       std::vector<int> nSimTracksshared, nSimTrackspion, nSimTracksproton, nUniqueSimTracksInSharedHit,nUniqueSimTracksInPionHit,nUniqueSimTracksInProtonHit;
-      std::vector<bool> sharedHitContainsGenLambda, sharedHitContainsGenPion, sharedHitContainsGenProton; 
-
+      std::vector<bool> sharedHitContainsGenLambda, sharedHitContainsGenPion, sharedHitContainsGenProton;
+	
       //primarty vtx vars
       double PVx,PVy,PVz,PVerrx,PVerry,PVerrz,PVcxy,PVcxz,PVcyz;
       double BSx,BSy,BSz,BSerrx,BSerry,BSerrz;
@@ -910,8 +910,11 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
         TrackingParticle genLambda;
         TrackingVertexRef genLambdaVtx;
         
-        TrackingParticleRef genPion;
-        TrackingParticleRef genProton;
+        TrackingParticle genPion;
+        TrackingParticle genProton;
+        TrackingParticleRef genPionRef;
+        TrackingParticleRef genProtonRef;
+        
         TrackingParticleRefVector decayTracks;
        	
         int nSimTracksShared = 0;
@@ -975,8 +978,10 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
         		         if(pion_dR + p_dR < min_dR){
         		            min_dR = pion_dR + p_dR;
         		            genLambda = tPC->at(std::distance(tPC->begin(), iter));
-                            genPion = pionCand;
-                            genProton = protonCand;
+                            genPion = *pionCand;
+                            genProton = *protonCand;
+                            genPionRef = pionCand;
+                            genProtonRef = protonCand;
         		            genLambdaVtx = decayVtx;
 							genLambdaFound = true;
         		         }
@@ -1039,8 +1044,8 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
                 
                 for(auto trackId : uniqueTrackIds){
                     if(trackId == (genLambda.g4Tracks()).front().trackId() ){    std::cout << "It's the lambda!" << std::endl; genLambdaInSharedHit = true;}
-                    if(trackId == (genProton->g4Tracks()).front().trackId() ){    std::cout << "It's the proton!" << std::endl; genProtonInSharedHit = true;}
-                    if(trackId == (genPion->g4Tracks()).front().trackId() ){    std::cout << "It's the pion!" << std::endl; genPionInSharedHit = true;}
+                    if(trackId == (genProtonRef->g4Tracks()).front().trackId() ){    std::cout << "It's the proton!" << std::endl; genProtonInSharedHit = true;}
+                    if(trackId == (genPionRef->g4Tracks()).front().trackId() ){    std::cout << "It's the pion!" << std::endl; genPionInSharedHit = true;}
                 }
             }
 
@@ -1130,7 +1135,8 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
         //TrkProtonchi2.push_back(proton->track().normalizedChi2());
         //TrkPi1ndof.push_back(pi1->track().ndof());
         //TrkProtonndof.push_back(proton->track().ndof());
-        KpiTrkpipt.push_back(pi_f.track().pt());
+
+//        KpiTrkpipt.push_back(pi_f.track().pt());
 //        KpiTrkSpt.push_back(trkS->track().pt());
 
 //        KpiTrkKeta.push_back(K_f.track().eta());
