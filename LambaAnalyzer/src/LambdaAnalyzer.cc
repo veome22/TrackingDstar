@@ -139,7 +139,7 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
       //Hit Truth matching quantities
       std::vector<int> nSimTracksshared, nSimTrackspion, nSimTracksproton, nUniqueSimTracksInSharedHit,nUniqueSimTracksInPionHit,nUniqueSimTracksInProtonHit;
       std::vector<bool> sharedHitContainsGenLambda, sharedHitContainsGenPion, sharedHitContainsGenProton; 
-      std::vector<std::vector<unsigned int>> uniqueSimTrackIds;
+      std::vector<std::vector<signed int>> uniqueSimTrackIds;
     
     
       //primarty vtx vars
@@ -1007,7 +1007,7 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
        bool genProtonInSharedHit = false;
        if(foundSharedHit&&doGen){
            std::vector<unsigned int> uniqueTrackIds;
-           std::vector<unsigned int> uniqueTrackPDGIds;
+           std::vector<signed int> uniqueTrackPDGIds;
            for(auto pixel : sharedHitPixels){
                if (foundSharedHit&&sharedHit->isValid()){
                    auto firstLink = pixelLinks->find(sharedHit->rawId());
@@ -1025,7 +1025,7 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
                                         }
                                         if(isNew){
                                             uniqueTrackIds.push_back((unsigned int)(iter->g4Tracks()).front().trackId());
-                                            uniqueTrackPDGIds.push_back((unsigned int) iter->pdgId());
+                                            uniqueTrackPDGIds.push_back((signed int) iter->pdgId());
                                        //std::cout << "iD" << iD << " trackId" << (unsigned int)(iter->g4Tracks()).front().trackId()<< std::endl;
                                             //std::cout << "Matched to tP. pdgid: " << iter->pdgId() << "trackId: " << (iter->g4Tracks()).front().trackId()<< " x pos: " << pixel.x << " y pos: " <<pixel.y << " fraction: " << linkiter.fraction() << std::endl;
 
