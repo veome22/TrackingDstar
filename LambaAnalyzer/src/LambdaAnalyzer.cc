@@ -138,8 +138,10 @@ class LambdaAnalyzer : public edm::EDAnalyzer {
      
       //Hit Truth matching quantities
       std::vector<int> nSimTracksshared, nSimTrackspion, nSimTracksproton, nUniqueSimTracksInSharedHit,nUniqueSimTracksInPionHit,nUniqueSimTracksInProtonHit;
-      std::vector<bool> sharedHitContainsGenLambda, sharedHitContainsGenPion, sharedHitContainsGenProton;
-	
+      std::vector<bool> sharedHitContainsGenLambda, sharedHitContainsGenPion, sharedHitContainsGenProton; 
+      std::vector<std::vector<signed int>> uniqueSimTrackIds;
+    
+    
       //primarty vtx vars
       double PVx,PVy,PVz,PVerrx,PVerry,PVerrz,PVcxy,PVcxz,PVcyz;
       double BSx,BSy,BSz,BSerrx,BSerry,BSerrz;
@@ -1005,6 +1007,7 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
        bool genProtonInSharedHit = false;
        if(foundSharedHit&&doGen){
            std::vector<unsigned int> uniqueTrackIds;
+           std::vector<signed int> uniqueTrackPDGIds;
            for(auto pixel : sharedHitPixels){
                if (foundSharedHit&&sharedHit->isValid()){
                    auto firstLink = pixelLinks->find(sharedHit->rawId());
@@ -1022,6 +1025,7 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
                                         }
                                         if(isNew){
                                             uniqueTrackIds.push_back((unsigned int)(iter->g4Tracks()).front().trackId());
+                                            uniqueTrackPDGIds.push_back((signed int) iter->pdgId());
                                        //std::cout << "iD" << iD << " trackId" << (unsigned int)(iter->g4Tracks()).front().trackId()<< std::endl;
                                             //std::cout << "Matched to tP. pdgid: " << iter->pdgId() << "trackId: " << (iter->g4Tracks()).front().trackId()<< " x pos: " << pixel.x << " y pos: " <<pixel.y << " fraction: " << linkiter.fraction() << std::endl;
 
@@ -1036,6 +1040,7 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
                     }
                 }
             }
+            uniqueSimTrackIds.push_back(uniqueTrackPDGIds);
             
             std::cout << "Found this many unique simtracks in shared hit: " << uniqueTrackIds.size() << std::endl;
             nUniqueSimTracksShared = uniqueTrackIds.size();
@@ -1317,7 +1322,8 @@ void LambdaAnalyzer::initialize(){
   GenPionPt.clear(); GenPionP.clear(); GenPionPhi.clear(); GenPionEta.clear(); GenPionMass.clear(); GenPionMt.clear(); GenPionE.clear(); GenPionEt.clear(); GenPionPx.clear(); GenPionPy.clear(); GenPionPz.clear(); GenPionDeltaR.clear();
 
   //Hit Matching
-  nSimTracksshared.clear(); nSimTrackspion.clear(); nSimTracksproton.clear(); nUniqueSimTracksInSharedHit.clear(); nUniqueSimTracksInPionHit.clear(); nUniqueSimTracksInProtonHit.clear(); sharedHitContainsGenLambda.clear(); sharedHitContainsGenPion.clear(); sharedHitContainsGenProton.clear();
+  nSimTracksshared.clear(); nSimTrackspion.clear(); nSimTracksproton.clear(); nUniqueSimTracksInSharedHit.clear(); nUniqueSimTracksInPionHit.clear(); nUniqueSimTracksInProtonHit.clear(); sharedHitContainsGenLambda.clear(); sharedHitContainsGenPion.clear(); sharedHitContainsGenProton.clear(); uniqueSimTrackIds.clear();
+
   
   //MC ids
   //static variables
@@ -1501,7 +1507,7 @@ tree1->Branch("nUniqueSimTracksInProtonHit",&nUniqueSimTracksInProtonHit);
 tree1->Branch("sharedHitContainsGenLambda",&sharedHitContainsGenLambda);
 tree1->Branch("sharedHitContainsGenPion",&sharedHitContainsGenPion);
 tree1->Branch("sharedHitContainsGenProton",&sharedHitContainsGenProton);
-
+tree1->Branch("uniqueSimTrackIds",&uniqueSimTrackIds);
 
 }
 
