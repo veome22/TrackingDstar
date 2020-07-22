@@ -1,16 +1,17 @@
 from root_pandas import read_root
 import sys
 
-#cols = ['isSharedHit','trackPt','trackEta','trackPhi','nUniqueSimTracksInSharedHit','sharedHitContainsGenPion','sharedHitContainsGenProton','sharedHitContainsGenLambda','GenDeltaR']
-cols = ['isSharedHit','trackPt','trackEta','trackPhi','nUniqueSimTracksInSharedHit',  'uniqueSimTrackIds', 'GenDeltaR', 'GenProtonDeltaR', 'GenPionDeltaR', 'sharedHitContainsGenLambda', 'sharedHitContainsGenProton', 'sharedHitContainsGenPion' ]
-
+cols = ['isSharedHit','trackPt','trackEta','trackPhi','nUniqueSimTracksInSharedHit', 'uniqueSharedSimTrackPDGIds',  'uniquePionSimTrackPDGIds', 'uniqueProtonSimTrackPDGIds', 'GenDeltaR', 'GenProtonDeltaR', 'GenPionDeltaR', 'sharedHitContainsGenLambda', 'sharedHitContainsGenProton', 'sharedHitContainsGenPion' ]
 for i in xrange(20*20):
     cols.append('pixel_%i' % i)
     
 df = read_root(sys.argv[1], columns=cols)
 print df
 df['nUniqueSimTracksInSharedHit'] = df['nUniqueSimTracksInSharedHit'].str[0]
-df['uniqueSimTrackIds'] = df['uniqueSimTrackIds'].str[0]
+
+df['uniqueSharedSimTrackPDGIds'] = df['uniqueSharedSimTrackPDGIds'].str[0]
+df['uniquePionSimTrackPDGIds'] = df['uniquePionSimTrackPDGIds'].str[0]
+df['uniqueProtonSimTrackPDGIds'] = df['uniqueProtonSimTrackPDGIds'].str[0]
 
 df['GenDeltaR'] = df['GenDeltaR'].str[0]
 df['GenProtonDeltaR'] = df['GenProtonDeltaR'].str[0]
