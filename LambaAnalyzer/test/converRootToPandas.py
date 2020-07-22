@@ -3,6 +3,7 @@ import sys
 
 #cols = ['isSharedHit','trackPt','trackEta','trackPhi','nUniqueSimTracksInSharedHit','sharedHitContainsGenPion','sharedHitContainsGenProton','sharedHitContainsGenLambda','GenDeltaR']
 cols = ['isSharedHit','trackPt','trackEta','trackPhi','nUniqueSimTracksInSharedHit',  'uniqueSimTrackIds', 'GenDeltaR', 'GenProtonDeltaR', 'GenPionDeltaR', 'sharedHitContainsGenLambda', 'sharedHitContainsGenProton', 'sharedHitContainsGenPion' ]
+
 for i in xrange(20*20):
     cols.append('pixel_%i' % i)
     
