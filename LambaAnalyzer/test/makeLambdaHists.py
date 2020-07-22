@@ -26,6 +26,11 @@ for iEntry in xrange(nentries):
     tree.GetEntry(iEntry)
     if (iEntry%10000 == 0): print "processing entry: ",iEntry
     #print tree.event_n,curr_event
+    
+    # Skip entries with more than one event
+    if len(tree.nUniqueSimTracksInSharedHit)>1:
+        continue
+
     if tree.event_n != curr_event:
         curr_event = tree.event_n
         #print LambdaMasses
