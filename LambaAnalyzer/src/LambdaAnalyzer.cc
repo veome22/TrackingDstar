@@ -463,15 +463,6 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
             TransientTrack *pi1=0,*proton=0;
 
-            // tag the tracks
-            if (trk1->charge() < 0.) {
-                pi1 = trk1;
-                proton = trk2;
-            }
-            else {
-                pi1 = trk2;
-                proton = trk1;
-            }
 
             //if (abs(pi1->track().pt() - 1.1041716) < 0.01) {
             //    cout<<"Found the pions!!"<<endl;
@@ -525,9 +516,13 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
             TransientTrack pi1_f;
             //assign proton/pion to the tracks based on momentum
             if( trk1_f.track().p() > trk2_f.track().p()){
+                proton = trk1;
+                pi1 = trk2;
                 proton_f = trk1_f;
                 pi1_f = trk2_f;
             }else{
+                proton = trk2;
+                pi1 = trk1;
                 proton_f = trk2_f;
                 pi1_f = trk1_f;
             }
