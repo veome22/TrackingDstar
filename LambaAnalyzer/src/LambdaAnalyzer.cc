@@ -1028,6 +1028,7 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
                     LambdaAnalyzer::getSimTracksFromPixelCluster(sharedHitPixels, sharedHit, uniqueSimTracksInSharedHit, uniqueSimTrackSharedPDGIds);
                     uniqueSharedSimTrackPDGIds.push_back(uniqueSimTrackSharedPDGIds);
 
+
                     std::cout << "Found this many unique simtracks in shared hit: " << uniqueSimTracksInSharedHit.size() << std::endl;
                     nUniqueSimTracksShared = uniqueSimTracksInSharedHit.size();
                     //Flag if the track IDs match gen lambda/proton/pion
@@ -1049,13 +1050,13 @@ void LambdaAnalyzer::loop(const edm::Event& iEvent, const edm::EventSetup& iSetu
                     LambdaAnalyzer::getSimTracksFromPixelCluster(pionHitPixels, pixelhit_pi, uniqueSimTracksInPionHit, uniqueSimTrackPionPDGIds);
                     nUniqueSimTracksPion = uniqueSimTracksInPionHit.size(); 
                     uniquePionSimTrackPDGIds.push_back(uniqueSimTrackPionPDGIds);
+
                     
                     std::vector<unsigned int> uniqueSimTracksInProtonHit;
                     std::vector<int> uniqueSimTrackProtonPDGIds;
                     LambdaAnalyzer::getSimTracksFromPixelCluster(protonHitPixels, pixelhit_p, uniqueSimTracksInProtonHit, uniqueSimTrackProtonPDGIds);
                     nUniqueSimTracksProton = uniqueSimTracksInProtonHit.size(); 
                     uniqueProtonSimTrackPDGIds.push_back(uniqueSimTrackProtonPDGIds);
-
                 }
 
             }
@@ -1330,6 +1331,7 @@ void LambdaAnalyzer::initialize(){
 
 
 
+
     //MC ids
     //static variables
     for(int i=0;i<160;i++)
@@ -1516,6 +1518,7 @@ void LambdaAnalyzer::beginJob(){
     tree1->Branch("uniqueSharedSimTrackPDGIds",&uniqueSharedSimTrackPDGIds);
     tree1->Branch("uniquePionSimTrackPDGIds",&uniquePionSimTrackPDGIds);
     tree1->Branch("uniqueProtonSimTrackPDGIds",&uniqueProtonSimTrackPDGIds);
+
 
 
 }
